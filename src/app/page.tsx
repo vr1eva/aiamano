@@ -1,5 +1,9 @@
+import { UserButton } from "@clerk/nextjs";
+ 
 export default function Home() {
   return (
-    <div>chat with ai</div>
+    <div className="h-screen">
+      <UserButton afterSignOutUrl="/"/>
+    </div>
   )
 }
