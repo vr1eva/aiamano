@@ -1,6 +1,5 @@
 import { SubmitButton } from '@/components/submit-button'
 import { getCompletion, getConversation } from "@/actions"
-import {Message} from "@prisma/client"
 
 export async function Chat() {
   const conversation = await getConversation()

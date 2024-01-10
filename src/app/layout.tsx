@@ -4,7 +4,7 @@ import './globals.css'
 import { cn } from "@/lib/utils"
 import { ClerkProvider } from '@clerk/nextjs'
 
-export const fontSans = FontSans({
+const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
 })
