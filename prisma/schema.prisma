@@ -1,16 +1,25 @@
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
-
 
 generator client {
   provider = "prisma-client-js"
 }
 
+model Conversation {
+  id       Int       @id @default(autoincrement())
+  messages Message[] @relation("ConversationMessages")
+}
+
 model Message {
-  id        Int      @id @default(autoincrement())
-  role      String
-  content   String
+  id             Int          @id @default(autoincrement())
+  role           String
+  content        String       @db.LongText
+  conversation   Conversation @relation("ConversationMessages", fields: [conversationId], references: [id])
+  createdAt      DateTime     @default(now())
+  conversationId Int
+
+  @@index([conversationId])
 }

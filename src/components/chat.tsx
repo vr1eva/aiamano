@@ -1,55 +1,23 @@
-"use client"
+import { SubmitButton } from '@/components/submit-button'
+import { getCompletion, getConversation } from "@/actions"
+import {Message} from "@prisma/client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+export async function Chat() {
+  const conversation = await getConversation()
 
-const formSchema = z.object({
-  prompt: z.string().min(2, {
-    message: "Prompt must be at least 2 characters.",
-  }),
-})
+  if(!conversation) return <p>We had a problem loading the chat, please refresh the page.</p>
 
-export function Chat() {
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-          prompt: "",
-        },
-      })
-    
-      function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values)
-      }
-    
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="prompt"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Chat with AI</FormLabel>
-              <FormControl>
-                <Input placeholder="Say something..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit">Submit</Button>
-      </form>
-    </Form>
+    <>
+    <ul>
+      {conversation.messages.map(message => (
+        <li key={message.id}>{message.content}</li>
+      )) }
+    </ul>
+    <form action={getCompletion}>
+      <input type="text" name="prompt" />
+      <SubmitButton/>
+    </form>
+    </>
   )
 }
