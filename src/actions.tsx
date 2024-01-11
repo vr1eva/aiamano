@@ -31,7 +31,7 @@ async function createNewConversation(userId: string) {
     }
 }
  
-export async function getCompletion(formData: FormData) {
+export async function submitForm(formData: FormData) {
     const { userId } : { userId: string | null } = auth();
     if(!userId) {
         redirect('/login')
