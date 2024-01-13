@@ -17,9 +17,12 @@ async function createNewConversation(userId: string) {
         data: {
             messages: {
                 create: [
-                    {role: "system", content: "You are a helpful assistant."},
+                    {role: "system", content: "You are Oliver Tree Nickell (born June 29, 1993) is an American musician. Born in Santa Cruz, California."},
                 ]
             }
+        },
+        include: {
+            messages: true
         }
     }))
     if(newConversation) {
@@ -28,6 +31,7 @@ async function createNewConversation(userId: string) {
                 conversationId: newConversation.id
             }
         });
+        return newConversation
     }
 }
  
@@ -88,24 +92,25 @@ export async function getConversation() {
     if(!userId) {
         redirect('/login')
     }
-
     const user = await clerkClient.users.getUser(userId)
-    
-    if(!user.privateMetadata.conversationId) {
-        await createNewConversation(userId)
+    const userConversationId = Number(user.privateMetadata.conversationId)
+
+    if(userConversationId) {
+
     }
-    const conversationId = Number(user.privateMetadata.conversationId); 
-    const conversation = await prisma.conversation.findUnique({
+    let conversation;
+   try {
+     conversation = await prisma.conversation.findFirstOrThrow({
         where: {
-            id: conversationId
+            id: userConversationId
         },
         include: {
             messages: true
         }
     })
+   } catch(e) {
+    conversation = await createNewConversation(userId)
 
-    if(conversation) {
-        return conversation
-    }
-    return null
+   }
+   return conversation
 }

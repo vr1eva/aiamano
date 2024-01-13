@@ -1,18 +1,20 @@
-import { getConversation } from "@/actions"
 import {Form} from "@/components/ui/form"
+import { Conversation, Message } from "@prisma/client"
 
-export async function Chat() {
-  const conversation = await getConversation()
-  if(!conversation) return <p>We had a problem loading the chat, please refresh the page.</p>
+type ExtendedConversation = Conversation & {
+  messages: Message[];
+};
+
+export async function Chat({conversation}: {conversation: ExtendedConversation}) {
 
   return (
     <>
     <ul>
-      {conversation.messages.map(message => (
+      {conversation.messages.slice(1).map((message: Message) => (
         <li key={message.id}>{message.content}</li>
       )) }
     </ul>
-    <Form/>
+    <Form />
     </>
   )
 }
