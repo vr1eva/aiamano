@@ -1,8 +1,9 @@
 import { UserButton } from "@clerk/nextjs";
 import {Chat} from "@/components/chat"
 import { getConversation } from "@/actions"
-import Image from "next/image";
 import { Suspense } from 'react'
+import Link from "next/link"
+import Image from "next/image"
 
 export default async function Home() {
   const conversation = await getConversation()
@@ -10,12 +11,24 @@ export default async function Home() {
   
   return (
     <div className="h-screen">
-      <h1>Chat with Oliver Tree</h1>
-      <Image src="https://res.cloudinary.com/vr1/image/upload/v1705181913/g5t0w2foz0dfgbuut371.jpg" alt="Oliver Tree image" width={80} height={100} />
-      <UserButton afterSignOutUrl="/"/>
+      <Navbar/>
       <Suspense fallback={<p>Loading...</p>}>
         <Chat conversation={conversation} />
       </Suspense>
+    </div>
+  )
+}
+
+function Navbar() {
+  return (
+    <div className="flex justify-between py-2">
+      <h1 className="font-bold">Voicechat</h1>
+      <ul className="flex gap-2" >
+        <li><Link href="/notifications"/>
+          <Image src="/notifications.svg" width={32} height={32} alt="notification bell"/>
+        </li>
+        <UserButton afterSignOutUrl="/"/>
+      </ul>
     </div>
   )
 }

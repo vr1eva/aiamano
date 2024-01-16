@@ -1,9 +1,8 @@
 import { authMiddleware } from "@clerk/nextjs";
- 
 export default authMiddleware({
-  ignoredRoutes: ["/((?!api|trpc))(_next.*|.+\.[\w]+$)", "/api/completions", "/"]
+  ignoredRoutes: ["/api/complete", "/api/transcribe"],
 });
- 
+
 export const config = {
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };
