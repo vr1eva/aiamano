@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import { transcribe } from "@/actions";
 import { blobToBase64, createMediaStream } from "@/lib/utils";
 
 export const useRecordVoice = () => {
@@ -25,25 +26,16 @@ export const useRecordVoice = () => {
     }
   };
 
-  const getText = async (base64data) => {
+  const getText = async (base64Data) => {
     try {
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          audio: base64data,
-        }),
-      }).then((res) => res.json());
-      const { text } = response;
+      const { text } = await transcribe(base64Data);
       setText(text);
     } catch (error) {
       console.log(error);
     }
   };
 
-  const initialMediaRecorder = (stream) => {
+  const initMediaRecorder = (stream) => {
     const mediaRecorder = new MediaRecorder(stream);
 
     mediaRecorder.onstart = () => {
@@ -51,8 +43,8 @@ export const useRecordVoice = () => {
       chunks.current = [];
     };
 
-    mediaRecorder.ondataavailable = (ev) => {
-      chunks.current.push(ev.data);
+    mediaRecorder.ondataavailable = (evt) => {
+      chunks.current.push(evt.data);
     };
 
     mediaRecorder.onstop = () => {
@@ -67,7 +59,7 @@ export const useRecordVoice = () => {
     if (typeof window !== "undefined") {
       navigator.mediaDevices
         .getUserMedia({ audio: true })
-        .then(initialMediaRecorder);
+        .then(initMediaRecorder);
     }
   }, []);
 

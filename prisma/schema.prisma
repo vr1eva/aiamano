@@ -11,6 +11,7 @@ generator client {
 model Conversation {
   id       Int       @id @default(autoincrement())
   messages Message[] @relation("ConversationMessages")
+  
 }
 
 model Message {
@@ -20,6 +21,16 @@ model Message {
   conversation   Conversation @relation("ConversationMessages", fields: [conversationId], references: [id])
   createdAt      DateTime     @default(now())
   conversationId Int
+  audio          Audio?  @relation("AudioMessage")
 
   @@index([conversationId])
+}
+
+
+model Audio {
+  id       Int      @id @default(autoincrement())
+  content  Bytes
+  message  Message  @relation("AudioMessage", fields: [messageId], references: [id])
+  messageId Int @unique
+  @@index([messageId])
 }
