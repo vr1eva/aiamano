@@ -4,7 +4,6 @@ import { transcribe } from "@/actions";
 import { blobToBase64, createMediaStream } from "@/lib/utils";
 
 export const useRecordVoice = () => {
-  const [text, setText] = useState("");
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [recording, setRecording] = useState(false);
   const isRecording = useRef(false);
@@ -28,8 +27,7 @@ export const useRecordVoice = () => {
 
   const getText = async (base64Data) => {
     try {
-      const { text } = await transcribe(base64Data);
-      setText(text);
+      await transcribe(base64Data);
     } catch (error) {
       console.log(error);
     }
@@ -63,5 +61,5 @@ export const useRecordVoice = () => {
     }
   }, []);
 
-  return { recording, startRecording, stopRecording, text };
+  return { recording, startRecording, stopRecording };
 };

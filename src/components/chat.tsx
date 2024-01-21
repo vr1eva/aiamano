@@ -16,7 +16,7 @@ export async function Chat({
   }
   return (
     <>
-      <ul className="flex flex-col gap-2 h-screen">
+      <ul className="flex flex-col gap-2">
         {conversation.messages
           .slice(1)
           .map((message: Message) =>

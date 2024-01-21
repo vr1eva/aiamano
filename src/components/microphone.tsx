@@ -4,7 +4,7 @@ import { useRecordVoice } from "@/hooks/useRecordVoice";
 import Image from "next/image";
 
 export const Microphone = () => {
-  const { startRecording, stopRecording } = useRecordVoice();
+  const { startRecording, stopRecording, recording } = useRecordVoice();
 
   return (
     // Button for starting and stopping voice recording
@@ -16,7 +16,7 @@ export const Microphone = () => {
       className="border-none bg-transparent w-10"
     >
       {/* Microphone icon component */}
-      <Image src="/record.svg" alt="record voice note" height={32} width={32} />
+      <Image src={recording ? "/recording.svg" : "/record.svg"} alt="record voice note" height={32} width={32} />
     </button>
   );
 };

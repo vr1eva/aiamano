@@ -3,8 +3,9 @@ import { auth, clerkClient, currentUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
 import { z } from "zod";
+import { Message } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { ConversationWithMessages } from "@/types";
+import { ConversationFetchResponse, CreateMessageResponse, CreateMessageArgs, FormSubmissionResponse, CreateCompletionArgs, TranscribeResponse, TextToSpeechResponse, CreateAudioMessageArgs } from "@/types";
 import fs from "fs";
 import { openai } from "@/openai";
 import { streamToBuffer } from "@/lib/utils";
@@ -15,7 +16,7 @@ const schema = z.object({
   }),
 });
 
-async function createNewConversation(): Promise<ConversationWithMessages> {
+async function createNewConversation() {
   const { userId }: { userId: string | null } = auth();
   if (!userId) {
     redirect("/sign-in");
@@ -42,13 +43,14 @@ async function createNewConversation(): Promise<ConversationWithMessages> {
         conversationId: conversation.id,
       },
     });
-    return conversation;
+    return { conversation, success: true }
   } catch (error) {
-    throw new Error("Failed to create conversation");
+    console.error(error)
+    return { success: false }
   }
 }
 
-export async function submitForm(formData: FormData) {
+export async function submitForm(formData: FormData): Promise<FormSubmissionResponse> {
   const { userId } = auth();
   if (!userId) {
     redirect("/sign-in");
@@ -57,44 +59,59 @@ export async function submitForm(formData: FormData) {
     prompt: formData.get("prompt"),
   });
   if (!validatedFields.success) {
+    console.error(validatedFields.error.flatten().fieldErrors)
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
+      success: false
     };
   }
-  const conversation = await getConversation();
-  if (!conversation || !conversation.messages) {
-    return;
+  const { conversation, success: conversationFetched } = await getConversation();
+  if (!conversationFetched || !conversation || !conversation.messages) {
+    return { success: false }
+  } else {
+    console.log("Conversation fetched")
   }
-  const newMessage = await createMessage({
+
+  const { message: userMessage, success: userMessageCreated } = await createMessage({
     content: validatedFields.data.prompt,
     role: "user",
     conversationId: conversation.id,
   });
-  const messages = [...conversation.messages, newMessage].map((message) => ({
-    role: message?.role,
-    content: message?.content,
-  }));
 
-  const completion = await complete({ messages });
-  console.log(completion);
-  await createMessage({
-    content: completion.text,
+  if (!userMessageCreated || !userMessage) {
+    return { success: false }
+  }
+  console.log("Sending text:", userMessage)
+  revalidatePath("/")
+
+  const messages = await parseConversation({ messages: [...conversation.messages, userMessage] })
+  const { completion: systemText, success: completionFullfilled } = await complete({ messages });
+  if (!completionFullfilled || !systemText) {
+    return { success: false }
+  }
+  const { message: systemMessage, success: systemMessageCreated } = await createMessage({
+    content: systemText,
     role: "system",
     conversationId: conversation.id,
   });
-  revalidatePath("/chat");
+
+  if (!systemMessageCreated || !systemMessage) {
+    return {
+      success: false
+    }
+  }
+  console.log("Response received from the network:", systemMessage)
+  revalidatePath("/");
+
+  return {
+    success: true
+  }
 }
 
-interface CreateMessageArgs {
-  content: string;
-  role: string;
-  conversationId: number;
-}
 async function createMessage({
   content,
   role,
   conversationId,
-}: CreateMessageArgs) {
+}: CreateMessageArgs): Promise<CreateMessageResponse> {
   const message = await prisma.message.create({
     data: {
       content,
@@ -107,10 +124,14 @@ async function createMessage({
     },
   });
 
-  return message ? message : null;
+  if (message) {
+    return { message, success: true }
+  } else {
+    return { success: false }
+  }
 }
 
-export async function getConversation(): Promise<ConversationWithMessages> {
+export async function getConversation(): Promise<ConversationFetchResponse> {
   const { userId } = auth();
   if (!userId) {
     redirect("/sign-in");
@@ -128,9 +149,15 @@ export async function getConversation(): Promise<ConversationWithMessages> {
         },
       });
       if (conversation && conversation.messages) {
-        return conversation;
+        return { conversation, success: true };
       } else {
-        return await createNewConversation();
+        const { conversation, success: conversationCreated } = await createNewConversation()
+        if (!conversationCreated || conversation) {
+          return {
+            success: false
+          }
+        }
+        return { conversation, success: true }
       }
     } catch (error) {
       throw new Error("Failed to create user conversation");
@@ -140,66 +167,81 @@ export async function getConversation(): Promise<ConversationWithMessages> {
   }
 }
 
-export async function transcribe(base64Audio) {
+export async function transcribe(base64Audio): Promise<TranscribeResponse> {
   const { userId } = auth();
   if (!userId) {
-    return new Response("Unauthorized", { status: 401 });
+    return {
+      success: false
+    }
   }
   const user = await currentUser();
   if (!user) {
-    return new Response("Unauthorized", { status: 401 });
+    return {
+      success: false
+    }
   }
-
-  // Convert the base64 audio data to a Buffer
   const audioBuffer = Buffer.from(base64Audio, "base64");
 
-  // Define the file path for storing the temporary WAV file
   const filePath = "tmp/input.wav";
 
   try {
-    // Write the audio data to a temporary WAV file synchronously
     fs.writeFileSync(filePath, audioBuffer);
 
-    // Create a readable stream from the temporary WAV file
     const readStream = fs.createReadStream(filePath);
 
     const transcript = await openai.audio.transcriptions.create({
       file: readStream,
       model: "whisper-1",
-      prompt: "I'm saying hello world with my microphone.",
     });
 
-    const conversation = await getConversation();
+    const { conversation, success: conversationFetched } = await getConversation();
 
-    if (!conversation) {
-      return new Response("Unauthorized", { status: 401 });
+    if (!conversationFetched || !conversation) {
+      return { success: false }
     }
+    const { message: userMessage, success: transcriptSaved } = await createMessage({
+      content: transcript.text,
+      role: "user",
+      conversationId: conversation.id,
+    })
 
-    const messages = [
-      ...conversation.messages,
-      { role: "user", content: transcript.text },
-    ].map((message) => ({
-      role: message?.role,
-      content: message?.content,
-    }));
+    if (!transcriptSaved || !userMessage) {
+      return { success: false }
+    }
+    console.log(transcript)
+    revalidatePath("/")
 
-    const { completion } = await complete({ messages });
+    const messages = await parseConversation({ messages: [...conversation.messages, userMessage] })
 
-    const { systemAudio } = await textToSpeech({ input: completion });
+    const { completion, success: completionFulfilled } = await complete({ messages });
+    if (!completionFulfilled || !completion) {
+      return { success: false }
+    }
+    console.log(completion)
+    const { speechBuffer, success: audioBuffered } = await textToSpeech({ input: completion });
+    if (!audioBuffered || !speechBuffer) {
+      return {
+        success: false
+      }
+    }
+    revalidatePath("/")
 
-    console.log(systemAudio);
+    const { audioMessage, success: audioMessageCreated } = await createAudioMessage({ text: userMessage.content, buffer: speechBuffer })
 
+    if (!audioMessageCreated || !audioMessage) {
+      return {
+        success: false
+      }
+    }
     // Remove the temporary file after successful processing
     // fs.unlinkSync(filePath);
-    return { transcript, completion, speech };
+    return { success: true };
   } catch (error) {
-    console.error("Error processing audio:", error);
-    return Response.json({ systemAudio: "SOrry" });
+    console.error("Error processing audio:", error)
+    return { success: false }
   }
 }
-
-export async function textToSpeech({ input }) {
-  console.log(input);
+export async function textToSpeech({ input }: { input: string }): Promise<TextToSpeechResponse> {
   const mp3 = await openai.audio.speech.create({
     model: "tts-1",
     voice: "alloy",
@@ -207,37 +249,65 @@ export async function textToSpeech({ input }) {
   });
 
   const readableStream = mp3.body as unknown as NodeJS.ReadableStream;
-  const { id: conversationId } = await getConversation();
-  const buffer = await streamToBuffer(readableStream);
-  const savedAudio = await prisma.message.create({
+  const speechBuffer = await streamToBuffer(readableStream);
+  return { speechBuffer, success: true }
+}
+
+async function createAudioMessage({ text, buffer }: CreateAudioMessageArgs) {
+  const { conversation, success: conversationFetched } = await getConversation()
+  if (!conversationFetched || !conversation) {
+    return {
+      success: false
+    }
+  }
+  const audioMessage = await prisma.audio.create({
     data: {
-      audio: {
+      content: buffer,
+      message: {
         create: {
-          content: buffer,
-        },
-      },
-      conversationId,
-      role: "system",
-      content:
-        "You are Oliver Tree Nickell (born June 29, 1993) is an American musician. Born in Santa Cruz, California.",
+          role: "system",
+          content: text,
+          conversation: {
+            connect: {
+              id: conversation.id
+            }
+          }
+        }
+      }
     },
   });
-  if (savedAudio) {
-    return { systemAudio: savedAudio };
+
+  if (audioMessage) {
+    revalidatePath("/")
+    console.log(audioMessage)
+    return { audioMessage, success: true };
   } else {
-    return { error: true };
+    return { success: false };
   }
 }
 
-export async function complete({ messages }) {
-  try {
-    const completion = await openai.chat.completions.create({
-      messages,
-      model: "gpt-3.5-turbo",
-    });
-
-    return { completion: completion.choices[0].message.content };
-  } catch (error) {
-    throw new Error("Failed to create completion.");
+export async function complete({ messages }: CreateCompletionArgs) {
+  if (!messages) {
+    return {
+      success: false
+    }
   }
+
+  const completion = await openai.chat.completions.create({
+    messages,
+    model: "gpt-3.5-turbo",
+  });
+
+  if (!completion) {
+    return { success: false }
+  }
+
+  return { completion: completion.choices[0].message.content, success: true };
+}
+
+async function parseConversation({ messages }: { messages: Message[] }) {
+  return messages.map((message) => ({
+    role: message?.role,
+    content: message?.content,
+  }));
 }
