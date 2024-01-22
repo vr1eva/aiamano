@@ -1,8 +1,7 @@
 import Image from "next/image"
-import { ConversationWithOptimisticMessages, MessageWithAudio, OptimisticMessage } from "@/types"
-import { Message } from "@prisma/client";
+import { ConversationWithOptimisticMessages, OptimisticMessage } from "@/types"
 
-export default function Conversation({ conversation, userAvatar, systemAvatar = "/tree.png" }: { conversation: ConversationWithOptimisticMessages, userAvatar: string, systemAvatar?: string }) {
+export default function Conversation({ conversation, userAvatar, systemAvatar }: { conversation: ConversationWithOptimisticMessages, userAvatar: string, systemAvatar: string }) {
     return (
         <ul className="flex flex-col gap-2">
             {conversation.messages

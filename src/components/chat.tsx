@@ -7,16 +7,26 @@ import { Microphone } from "@/components/microphone";
 import Image from "next/image"
 import { useFormStatus } from 'react-dom'
 import Conversation from "@/components/conversation"
-import { ChatArgs } from "@/types";
+import { ChatArgs, Agent } from "@/types";
 import { useOptimisticConversation } from "@/hooks/useOptimisticConversation"
+import Agents from "@/components/agents"
 
 
 export function Chat({ conversation, userAvatar }: ChatArgs) {
   const { optimisticConversation, addOptimisticMessage } = useOptimisticConversation({ initialConversation: conversation })
+  const [agents] = useState([{ id: 1, name: "Oliver Tree", handle: "oliver", agentAvatar: "/tree.png" }, { id: 2, name: "Jack Do Little", handle: "jacklildoomd", agentAvatar: "/doolittle.png" }])
+  const [currentAgent, setAgent] = useState(agents[0])
 
   return (
     <>
-      <Conversation conversation={optimisticConversation} userAvatar={userAvatar} />
+      <Agents agents={agents} currentAgent={currentAgent} selectAgent={({ id }: Agent) => {
+        const selectedAgent = agents.find((agent) => agent.id === id)
+        console.log(agents, selectedAgent)
+        if (selectedAgent) {
+          setAgent(selectedAgent)
+        }
+      }} />
+      <Conversation conversation={optimisticConversation} userAvatar={userAvatar} systemAvatar={currentAgent.agentAvatar} />
       <Microphone />
       <form
         action={async (formData: FormData) => {
@@ -42,21 +52,16 @@ export function Chat({ conversation, userAvatar }: ChatArgs) {
 
 export function Entry() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [lastPrompt, setPrompt] = useState("")
   const { pending } = useFormStatus()
 
   useEffect(() => {
     if (inputRef.current && pending) {
-      setPrompt(inputRef.current.value)
       inputRef.current.value = ""
-    } else if (lastPrompt && !pending) {
-      setPrompt("")
     }
   }, [pending])
 
   return (
     <>
-      {pending ? <p>Sending... <i>{lastPrompt}</i></p> : null}
       <Input disabled={pending} ref={inputRef} type="text" name="prompt" />
       <Button variant="chat" type="submit" aria-disabled={pending}>
         <Image src="/send.svg" width={16} height={16} alt="submit button" />

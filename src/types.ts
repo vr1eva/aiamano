@@ -86,3 +86,10 @@ export interface ChatArgs {
 export interface UseOptimisticConversationProps {
   initialConversation: ConversationWithMessages;
 }
+
+export interface Agent {
+  id: number,
+  name: string,
+  handle: string,
+  agentAvatar: string
+}

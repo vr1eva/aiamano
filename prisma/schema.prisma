@@ -34,3 +34,9 @@ model Audio {
   messageId Int @unique
   @@index([messageId])
 }
+
+model Agent {
+  id:     Int      @id @default(autoincrement())
+  name:   String
+  handle:   String
+}
