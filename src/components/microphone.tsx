@@ -1,27 +1,45 @@
 "use client";
-import { useEffect } from "react"
+import { startTransition, useEffect } from "react";
 import { useRecordVoice } from "@/hooks/useRecordVoice";
 import Image from "next/image";
 
-export const Microphone = ({ addOptimisticMessage }: { addOptimisticMessage: Function }) => {
-  const { startRecording, stopRecording, recording, transcript, processing } = useRecordVoice();
+export const Microphone = ({
+  addOptimisticTranscript,
+  occupied,
+  scrollToLastMessage,
+}: {
+  scrollToLastMessage: Function;
+  addOptimisticTranscript: Function;
+  occupied: boolean;
+}) => {
+  const { startRecording, stopRecording, recording, transcript, processing } =
+    useRecordVoice();
 
   useEffect(() => {
     if (transcript) {
-      addOptimisticMessage({
-        role: "user",
-        content: transcript,
-      })
+      startTransition(() => {
+        addOptimisticTranscript({
+          content: transcript,
+          role: "user",
+        });
+      });
     }
-  }, [transcript, addOptimisticMessage])
+  }, [transcript, addOptimisticTranscript]);
   return (
     <div className="flex gap-2 items-center my-4">
-      {processing ? <>
-        <button>
-          <Image src={"/processing.svg"} alt="processing icon" height={32} width={32} />
-        </button>
-        <p>Processing audio...</p>
-      </> :
+      {processing || occupied ? (
+        <>
+          <button>
+            <Image
+              src={"/processing.svg"}
+              alt="processing icon"
+              height={32}
+              width={32}
+            />
+          </button>
+          <p>Waiting...</p>
+        </>
+      ) : (
         <>
           <button
             onMouseDown={startRecording}
@@ -30,11 +48,18 @@ export const Microphone = ({ addOptimisticMessage }: { addOptimisticMessage: Fun
             onTouchEnd={stopRecording}
             className="border-none bg-transparent"
           >
-            <Image src={recording ? "/recording.svg" : "/record.svg"} alt="record voice note" height={32} width={32} />
+            <Image
+              src={recording ? "/recording.svg" : "/record.svg"}
+              alt="record voice note"
+              height={32}
+              width={32}
+            />
           </button>
-          <p className="shrink-0">{recording ? "Listening..." : "Press and hold to record a message"}</p >
+          <p className="shrink-0">
+            {recording ? "Listening..." : "Press and hold to record a message"}
+          </p>
         </>
-      }
+      )}
     </div>
-  )
+  );
 };

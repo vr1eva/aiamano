@@ -4,7 +4,21 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { ConversationFetchResponse, CreateMessageResponse, CreateMessageArgs, FormSubmissionResponse, CompleteResponse, TranscribeArgs, SendAudioArgs, PrepareConversationResponse, TranscribeResponse, TextToSpeechResponse, CreateAudioMessageArgs, ConversationWithMessages, ROLE_ENUM } from "@/types";
+import {
+  ConversationFetchResponse,
+  CreateMessageResponse,
+  CreateMessageArgs,
+  FormSubmissionResponse,
+  CompleteResponse,
+  TranscribeArgs,
+  SendAudioArgs,
+  PrepareConversationResponse,
+  TranscribeResponse,
+  TextToSpeechResponse,
+  CreateAudioMessageArgs,
+  ConversationWithMessages,
+  ROLE_ENUM,
+} from "@/types";
 import fs from "fs";
 import { openai } from "@/openai";
 import { streamToBuffer } from "@/lib/utils";
@@ -42,14 +56,16 @@ async function createNewConversation() {
         conversationId: conversation.id,
       },
     });
-    return { conversation, success: true }
+    return { conversation, success: true };
   } catch (error) {
-    console.error(error)
-    return { success: false }
+    console.error(error);
+    return { success: false };
   }
 }
 
-export async function submitForm(formData: FormData): Promise<FormSubmissionResponse> {
+export async function submitForm(
+  formData: FormData
+): Promise<FormSubmissionResponse> {
   const { userId } = auth();
   if (!userId) {
     redirect("/sign-in");
@@ -58,58 +74,62 @@ export async function submitForm(formData: FormData): Promise<FormSubmissionResp
     prompt: formData.get("prompt"),
   });
   if (!validatedFields.success) {
-    console.error(validatedFields.error.flatten().fieldErrors)
+    console.error(validatedFields.error.flatten().fieldErrors);
     return {
-      success: false
+      success: false,
     };
   }
-  const { message: userMessage, success: userMessageCreated } = await createMessage({
-    content: validatedFields.data.prompt,
-    role: "user",
-  });
+  const { message: userMessage, success: userMessageCreated } =
+    await createMessage({
+      content: validatedFields.data.prompt,
+      role: "user" as ROLE_ENUM,
+    });
 
   if (!userMessageCreated || !userMessage) {
-    return { success: false }
+    return { success: false };
   }
-  console.log("Text sent:", userMessage)
+  console.log("Text sent:", userMessage);
 
-  const { conversation, success: conversationFetched } = await getConversation()
+  const { conversation, success: conversationFetched } =
+    await getConversation();
   if (!conversationFetched || !conversation || !conversation.messages) {
-    return { success: false }
+    return { success: false };
   }
 
-  const { completion: systemText, success: completionFullfilled } = await complete();
+  const { completion: systemText, success: completionFullfilled } =
+    await complete();
   if (!completionFullfilled || !systemText) {
-    return { success: false }
+    return { success: false };
   }
 
-  const { message: systemMessage, success: systemMessageCreated } = await createMessage({
-    content: systemText,
-    role: "system",
-  });
-
+  const { message: systemMessage, success: systemMessageCreated } =
+    await createMessage({
+      content: systemText,
+      role: "system",
+    });
 
   if (!systemMessageCreated || !systemMessage) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
-  console.log("Text received:", systemMessage)
-  revalidatePath("/")
+  console.log("Text received:", systemMessage);
+  revalidatePath("/");
   return {
-    success: true
-  }
+    success: true,
+  };
 }
 
 async function createMessage({
   content,
   role,
 }: CreateMessageArgs): Promise<CreateMessageResponse> {
-  const { conversation, success: conversationFetched } = await getConversation()
+  const { conversation, success: conversationFetched } =
+    await getConversation();
   if (!conversationFetched || !conversation) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
   const message = await prisma.message.create({
     data: {
@@ -124,9 +144,9 @@ async function createMessage({
   });
 
   if (message) {
-    return { message, success: true }
+    return { message, success: true };
   } else {
-    return { success: false }
+    return { success: false };
   }
 }
 
@@ -139,11 +159,12 @@ export async function getConversation(): Promise<ConversationFetchResponse> {
   const conversationId = Number(user.privateMetadata.conversationId);
   let result;
   if (!conversationId) {
-    const { conversation: newConversation, success: conversationCreated } = await createNewConversation()
+    const { conversation: newConversation, success: conversationCreated } =
+      await createNewConversation();
     if (!conversationCreated || !newConversation || !newConversation.messages) {
-      result = { success: false }
+      result = { success: false };
     } else {
-      result = { conversation: newConversation, success: true }
+      result = { conversation: newConversation, success: true };
     }
   } else {
     const conversation = await prisma.conversation.findFirst({
@@ -151,88 +172,110 @@ export async function getConversation(): Promise<ConversationFetchResponse> {
         id: conversationId,
       },
       include: {
-        messages: true,
+        messages: {
+          include: {
+            audio: true,
+          },
+        },
       },
     });
 
     if (!conversation || !conversation.messages) {
-      result = { success: false }
+      result = { success: false };
     } else {
-      result = { conversation, success: true }
+      result = { conversation, success: true };
     }
   }
 
   return {
     conversation: result.conversation,
-    success: result.success
-  }
-
+    success: result.success,
+  };
 }
 
 export async function sendAudio({ base64Data }: SendAudioArgs) {
   const { userId } = auth();
   if (!userId) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
   const user = await currentUser();
   if (!user) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
 
+  const {
+    transcript,
+    success: transcribedSuccessfully,
+    buffer: userAudioBuffer,
+  } = await transcribe({
+    base64Data,
+  });
 
-  const { transcript, success: transcribedSuccessfully } = await transcribe({ base64Data })
-
-  if (!transcribedSuccessfully || !transcript) {
+  if (!transcribedSuccessfully || !transcript || !userAudioBuffer) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
 
+  const { audioMessage: userAudioMessage, success: userAudioMessageSaved } =
+    await createAudioMessage({
+      text: transcript,
+      buffer: userAudioBuffer,
+      role: "user",
+    });
 
-  const { message: userMessage, success: transcriptSaved } = await createMessage({
-    content: transcript,
-    role: "user",
-  })
-
-  if (!transcriptSaved || !userMessage) {
-    return { success: false }
+  if (!userAudioMessageSaved || !userAudioMessage) {
+    return { success: false };
   }
 
-  const { completion: systemText, success: responseReceived } = await complete();
+  const { completion: systemText, success: responseReceived } =
+    await complete();
 
   if (!responseReceived || !systemText) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
 
-  const { speechBuffer, success: speechGenerated } = await textToSpeech({ input: systemText });
+  const { speechBuffer: systemAudioBuffer, success: speechGenerated } =
+    await textToSpeech({
+      input: systemText,
+    });
 
-  if (!speechGenerated || !speechBuffer) {
+  if (!speechGenerated || !systemAudioBuffer) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
 
-  const { audioMessage: systemAudioMessage, success: systemAudioMessageCreated } = await createAudioMessage({ text: systemText, buffer: speechBuffer })
+  const {
+    audioMessage: systemAudioMessage,
+    success: systemAudioMessageCreated,
+  } = await createAudioMessage({
+    text: systemText,
+    buffer: systemAudioBuffer,
+    role: "system" as ROLE_ENUM,
+  });
 
   if (!systemAudioMessageCreated || !systemAudioMessage) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
-  revalidatePath("/")
+  revalidatePath("/");
   return {
     transcript,
-    success: true
-  }
+    success: true,
+  };
 }
 
-export async function transcribe({ base64Data }: TranscribeArgs): Promise<TranscribeResponse> {
+export async function transcribe({
+  base64Data,
+}: TranscribeArgs): Promise<TranscribeResponse> {
   const filePath = "tmp/input.wav";
   const audioBuffer = Buffer.from(base64Data, "base64");
   fs.writeFileSync(filePath, audioBuffer);
@@ -243,15 +286,21 @@ export async function transcribe({ base64Data }: TranscribeArgs): Promise<Transc
   });
 
   if (!transcript) {
-    return { success: false }
+    return { success: false };
   }
 
   return {
-    transcript: transcript.text, success: true
-  }
+    buffer: audioBuffer,
+    transcript: transcript.text,
+    success: true,
+  };
 }
 
-export async function textToSpeech({ input }: { input: string }): Promise<TextToSpeechResponse> {
+export async function textToSpeech({
+  input,
+}: {
+  input: string;
+}): Promise<TextToSpeechResponse> {
   const mp3 = await openai.audio.speech.create({
     model: "tts-1",
     voice: "alloy",
@@ -260,50 +309,64 @@ export async function textToSpeech({ input }: { input: string }): Promise<TextTo
 
   const readableStream = mp3.body as unknown as NodeJS.ReadableStream;
   const speechBuffer = await streamToBuffer(readableStream);
-  return { speechBuffer, success: true }
+  return { speechBuffer, success: true };
 }
 
-async function createAudioMessage({ text, buffer }: CreateAudioMessageArgs) {
-  const { conversation, success: conversationFetched } = await getConversation()
+async function createAudioMessage({
+  text,
+  buffer,
+  role,
+}: CreateAudioMessageArgs) {
+  const { conversation, success: conversationFetched } =
+    await getConversation();
   if (!conversationFetched || !conversation) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
   const audioMessage = await prisma.audio.create({
     data: {
       content: buffer,
       message: {
         create: {
-          role: "system",
+          role,
           content: text,
           conversation: {
             connect: {
-              id: conversation.id
-            }
-          }
-        }
-      }
+              id: conversation.id,
+            },
+          },
+        },
+      },
     },
   });
 
   if (!audioMessage) {
     return { success: false };
-  } return { audioMessage, success: true };
+  }
+  return { audioMessage, success: true };
 }
 
 export async function complete(): Promise<CompleteResponse> {
-  const { conversation, success: conversationFetched } = await getConversation()
+  const { conversation, success: conversationFetched } =
+    await getConversation();
   if (!conversationFetched || !conversation || !conversation.messages) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
-  const { conversation: preparedConversation, success: conversationMessagesFormatted } = await prepareConversationForCompletion({ conversation })
-  if (!conversationMessagesFormatted || !preparedConversation || !preparedConversation.messages) {
+  const {
+    conversation: preparedConversation,
+    success: conversationMessagesFormatted,
+  } = await prepareConversationForCompletion({ conversation });
+  if (
+    !conversationMessagesFormatted ||
+    !preparedConversation ||
+    !preparedConversation.messages
+  ) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
 
   const completion = await openai.chat.completions.create({
@@ -312,23 +375,29 @@ export async function complete(): Promise<CompleteResponse> {
   });
 
   if (!completion || !completion.choices[0].message.content) {
-    return { success: false }
+    return { success: false };
   }
 
   return { completion: completion.choices[0].message.content, success: true };
 }
 
-async function prepareConversationForCompletion({ conversation }: { conversation: ConversationWithMessages }): Promise<PrepareConversationResponse> {
+async function prepareConversationForCompletion({
+  conversation,
+}: {
+  conversation: ConversationWithMessages;
+}): Promise<PrepareConversationResponse> {
   if (!conversation || !conversation.messages) {
-    return { success: false }
+    return { success: false };
   }
 
   return {
     conversation: {
-      ...conversation, messages: conversation.messages.map((message) => ({
+      ...conversation,
+      messages: conversation.messages.map((message) => ({
         role: message.role as ROLE_ENUM,
         content: message.content,
-      }))
-    }, success: true
-  }
+      })),
+    },
+    success: true,
+  };
 }
