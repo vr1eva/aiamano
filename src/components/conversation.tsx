@@ -1,5 +1,10 @@
 import Image from "next/image";
-import { ConversationWithOptimisticMessages, OptimisticMessage } from "@/types";
+import {
+  ConversationWithOptimisticMessages,
+  OptimisticMessage,
+  AudioMessageProps,
+} from "@/types";
+import { useRef, useEffect, useMemo } from "react";
 
 export default function Conversation({
   conversation,
@@ -32,9 +37,38 @@ export default function Conversation({
   );
 }
 
-function AudioMessage({ audio }) {
-  console.log(audio);
-  return <p>Audio message</p>;
+async function AudioMessage({ audio }: AudioMessageProps) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [audioContext, audioSource] = useMemo(() => {
+    const context = new AudioContext();
+    const source = context.createBufferSource();
+    return [context, source];
+  }, []);
+
+  useEffect(() => {
+    const playAudio = () => {
+      if (audioRef.current) {
+        audioContext.decodeAudioData(audio.content.buffer, (audioBuffer) => {
+          audioSource.buffer = audioBuffer;
+          audioSource.connect(audioContext.destination);
+          audioSource.start();
+          audioRef?.current?.play();
+        });
+      }
+    };
+
+    playAudio();
+
+    return () => {
+      audioSource.disconnect();
+      audioContext.close();
+    };
+  }, [audio, audioContext, audioSource]);
+  return (
+    <audio key={audio.id} ref={audioRef} controls>
+      Audio message
+    </audio>
+  );
 }
 
 function SystemMessage({
@@ -57,7 +91,7 @@ function SystemMessage({
         <div className="flex flex-col">
           <p className="font-bold">System</p>
           <p>{message.content}</p>
-          <SystemMessageActions />
+          <MessageActions role="system" />
         </div>
       </li>
       {message.audio ? <AudioMessage audio={message.audio} /> : null}
@@ -65,7 +99,7 @@ function SystemMessage({
   );
 }
 
-function MessageActions({ role }) {
+function MessageActions({ role }: { role: string }) {
   if (role === "system") {
     return (
       <ul className="flex gap-2 opacity-0 hover:opacity-100 cursor-pointer items-center">

@@ -225,7 +225,7 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
     await createAudioMessage({
       text: transcript,
       buffer: userAudioBuffer,
-      role: "user",
+      role: "user" as ROLE_ENUM,
     });
 
   if (!userAudioMessageSaved || !userAudioMessage) {

@@ -105,3 +105,7 @@ export interface Agent {
   handle: string;
   agentAvatar: string;
 }
+
+export interface AudioMessageProps {
+  audio: Audio;
+}
