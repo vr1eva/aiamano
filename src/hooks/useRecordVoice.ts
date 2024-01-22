@@ -68,7 +68,7 @@ export const useRecordVoice = () => {
     };
 
     setMediaRecorder(mediaRecorder);
-  }, [recording]);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
