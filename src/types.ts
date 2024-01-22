@@ -41,7 +41,6 @@ export type OptimisticMessage = {
   audio?: Audio
 }
 
-
 export interface ConversationFetchArgs {
   parsed?: boolean
 }
@@ -106,4 +105,8 @@ export interface Agent {
   name: string,
   handle: string,
   agentAvatar: string
+}
+
+export interface AudioMessageProps {
+  audio: Audio
 }

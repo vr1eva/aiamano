@@ -183,27 +183,22 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
     }
   }
 
-
   const { transcript, success: transcribedSuccessfully } = await transcribe({ base64Data })
-
   if (!transcribedSuccessfully || !transcript) {
     return {
       success: false
     }
   }
 
-
   const { message: userMessage, success: transcriptSaved } = await createMessage({
     content: transcript,
     role: "user",
   })
-
   if (!transcriptSaved || !userMessage) {
     return { success: false }
   }
 
   const { completion: systemText, success: responseReceived } = await complete();
-
   if (!responseReceived || !systemText) {
     return {
       success: false
@@ -211,7 +206,6 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
   }
 
   const { speechBuffer, success: speechGenerated } = await textToSpeech({ input: systemText });
-
   if (!speechGenerated || !speechBuffer) {
     return {
       success: false
@@ -219,7 +213,6 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
   }
 
   const { audioMessage: systemAudioMessage, success: systemAudioMessageCreated } = await createAudioMessage({ text: systemText, buffer: speechBuffer })
-
   if (!systemAudioMessageCreated || !systemAudioMessage) {
     return {
       success: false

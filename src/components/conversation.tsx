@@ -1,5 +1,6 @@
 import Image from "next/image"
-import { ConversationWithOptimisticMessages, OptimisticMessage } from "@/types"
+import { ConversationWithOptimisticMessages, OptimisticMessage, AudioMessageProps } from "@/types"
+import { useRef, useEffect, useMemo } from "react"
 
 export default function Conversation({ conversation, userAvatar, systemAvatar = "/tree.png", separatorRef }: { conversation: ConversationWithOptimisticMessages, userAvatar: string, systemAvatar?: string, separatorRef: React.RefObject<HTMLElement> | null }) {
 
@@ -23,10 +24,35 @@ export default function Conversation({ conversation, userAvatar, systemAvatar = 
     )
 }
 
-function AudioMessage({ audio }) {
-    console.log(audio)
+async function AudioMessage({ audio }: AudioMessageProps) {
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const [audioContext, audioSource] = useMemo(() => {
+        const context = new AudioContext();
+        const source = context.createBufferSource();
+        return [context, source];
+    }, []);
+
+    useEffect(() => {
+        const playAudio = () => {
+            if (audioRef.current) {
+                audioContext.decodeAudioData(audio.content.buffer, (audioBuffer) => {
+                    audioSource.buffer = audioBuffer;
+                    audioSource.connect(audioContext.destination)
+                    audioSource.start()
+                    audioRef?.current?.play()
+                })
+            }
+        }
+
+        playAudio()
+
+        return () => {
+            audioSource.disconnect()
+            audioContext.close()
+        }
+    }, [audio, audioContext, audioSource])
     return (
-        <p>Audio message</p>
+        <audio key={audio.id} ref={audioRef} controls>Audio message</audio>
     )
 }
 
