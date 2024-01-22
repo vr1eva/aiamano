@@ -1,22 +1,43 @@
 import { Message, Conversation, Audio } from "@prisma/client";
 
+export type ConversationFetchResponse = {
+  conversation?: ConversationWithMessages
+  success: boolean
+}
+
 export type ConversationWithMessages = Conversation & {
   messages: Message[];
 };
 
-export type OptimisticMessage = ParsedMessage | Message
 
-export type ConversationWithParsedMessages = Conversation & {
-  messages: ParsedMessage[]
+export type ConversationWithCompletionMessages = Conversation & {
+  messages: CompletionMessage[];
+};
+
+export enum ROLE_ENUM {
+  user = "user",
+  assistant = "assistant",
+  system = 'system'
+}
+
+export type CompletionMessage = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  name?: string;
+}
+
+export type PrepareConversationResponse = {
+  conversation?: ConversationWithCompletionMessages,
+  success: boolean
 }
 
 export type ConversationWithOptimisticMessages = Conversation & {
-  messages: ParsedMessage[] | Message[]
+  messages: OptimisticMessage[]
 }
 
-export type ConversationFetchResponse = {
-  conversation?: ConversationWithMessages
-  success: boolean
+export type OptimisticMessage = {
+  role: string,
+  content: string
 }
 
 
@@ -34,18 +55,10 @@ export interface CreateMessageArgs {
   role: string;
 }
 
-export type FormatConversationResponse = {
-  conversation?: ConversationWithParsedMessages
-  success: boolean
-}
+
 
 export type FormSubmissionResponse = {
   success: boolean
-}
-
-export type ParsedMessage = {
-  role: string,
-  content: string,
 }
 
 export interface TranscribeArgs {

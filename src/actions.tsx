@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { ConversationFetchResponse, CreateMessageResponse, CreateMessageArgs, FormSubmissionResponse, CompleteResponse, TranscribeArgs, SendAudioArgs, FormatConversationResponse, TranscribeResponse, TextToSpeechResponse, CreateAudioMessageArgs, ConversationWithMessages } from "@/types";
+import { ConversationFetchResponse, CreateMessageResponse, CreateMessageArgs, FormSubmissionResponse, CompleteResponse, TranscribeArgs, SendAudioArgs, PrepareConversationResponse, TranscribeResponse, TextToSpeechResponse, CreateAudioMessageArgs, ConversationWithMessages, ROLE_ENUM } from "@/types";
 import fs from "fs";
 import { openai } from "@/openai";
 import { streamToBuffer } from "@/lib/utils";
@@ -298,15 +298,15 @@ export async function complete(): Promise<CompleteResponse> {
       success: false
     }
   }
-  const { conversation: formattedConversation, success: conversationMessagesFormatted } = await formatConversation({ conversation })
-  if (!conversationMessagesFormatted || !formattedConversation || !formattedConversation.messages) {
+  const { conversation: preparedConversation, success: conversationMessagesFormatted } = await prepareConversationForCompletion({ conversation })
+  if (!conversationMessagesFormatted || !preparedConversation || !preparedConversation.messages) {
     return {
       success: false
     }
   }
 
   const completion = await openai.chat.completions.create({
-    messages: formattedConversation.messages,
+    messages: preparedConversation.messages,
     model: "gpt-3.5-turbo",
   });
 
@@ -317,7 +317,7 @@ export async function complete(): Promise<CompleteResponse> {
   return { completion: completion.choices[0].message.content, success: true };
 }
 
-async function formatConversation({ conversation }: { conversation: ConversationWithMessages }): Promise<FormatConversationResponse> {
+async function prepareConversationForCompletion({ conversation }: { conversation: ConversationWithMessages }): Promise<PrepareConversationResponse> {
   if (!conversation || !conversation.messages) {
     return { success: false }
   }
@@ -325,8 +325,8 @@ async function formatConversation({ conversation }: { conversation: Conversation
   return {
     conversation: {
       ...conversation, messages: conversation.messages.map((message) => ({
-        role: message?.role,
-        content: message?.content,
+        role: message.role as ROLE_ENUM,
+        content: message.content,
       }))
     }, success: true
   }
