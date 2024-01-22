@@ -24,13 +24,13 @@ export function Chat({ conversation, userAvatar }: ChatArgs) {
       <Conversation separatorRef={separatorRef} conversation={optimisticConversation} userAvatar={userAvatar} />
       <form
         action={async (formData: FormData) => {
-          const [prompt, promptIsValid] = [formData.get("prompt"), formData.get("prompt") !== ""]
+          const [prompt, promptIsValid] = [formData.get("prompt") as string, formData.get("prompt") !== ""]
           if (!promptIsValid || !prompt) {
             return {
               success: false
             }
           }
-          await addOptimisticMessage({
+          addOptimisticMessage({
             role: "user",
             content: prompt,
           })
