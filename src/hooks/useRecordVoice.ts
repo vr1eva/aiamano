@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { transcribe } from "@/actions";
+import { sendAudio } from "@/actions";
 import { blobToBase64, createMediaStream } from "@/lib/utils";
 
 export const useRecordVoice = () => {
@@ -27,7 +27,7 @@ export const useRecordVoice = () => {
 
   const getText = async (base64Data) => {
     try {
-      await transcribe(base64Data);
+      await sendAudio({ base64Data });
     } catch (error) {
       console.log(error);
     }

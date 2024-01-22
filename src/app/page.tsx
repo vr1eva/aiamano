@@ -4,16 +4,22 @@ import { getConversation } from "@/actions"
 import { Suspense } from 'react'
 import Link from "next/link"
 import Image from "next/image"
+import { currentUser } from "@clerk/nextjs/server";
 
 export default async function Home() {
   const { conversation, success: conversationFetched } = await getConversation()
   if (!conversationFetched || !conversation) return <p>We had a problem loading the chat, please refresh the page.</p>
 
+  const user = await currentUser()
+  if (!user) {
+    return <p>Problem detected fetching user.</p>
+  }
+
   return (
     <div>
       <Navbar />
       <Suspense fallback={<p>Loading...</p>}>
-        <Chat conversation={conversation} />
+        <Chat conversation={conversation} userAvatar={user.imageUrl} />
       </Suspense>
     </div>
   )

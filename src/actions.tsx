@@ -3,9 +3,8 @@ import { auth, clerkClient, currentUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
 import { z } from "zod";
-import { Message } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { ConversationFetchResponse, CreateMessageResponse, CreateMessageArgs, FormSubmissionResponse, CreateCompletionArgs, TranscribeResponse, TextToSpeechResponse, CreateAudioMessageArgs } from "@/types";
+import { ConversationFetchResponse, CreateMessageResponse, CreateMessageArgs, FormSubmissionResponse, CompleteResponse, TranscribeArgs, SendAudioArgs, ParsedMessage, FormatConversationResponse, TranscribeResponse, TextToSpeechResponse, CreateAudioMessageArgs, ConversationWithMessages } from "@/types";
 import fs from "fs";
 import { openai } from "@/openai";
 import { streamToBuffer } from "@/lib/utils";
@@ -64,44 +63,38 @@ export async function submitForm(formData: FormData): Promise<FormSubmissionResp
       success: false
     };
   }
-  const { conversation, success: conversationFetched } = await getConversation();
-  if (!conversationFetched || !conversation || !conversation.messages) {
-    return { success: false }
-  } else {
-    console.log("Conversation fetched")
-  }
-
   const { message: userMessage, success: userMessageCreated } = await createMessage({
     content: validatedFields.data.prompt,
     role: "user",
-    conversationId: conversation.id,
   });
 
   if (!userMessageCreated || !userMessage) {
     return { success: false }
   }
-  console.log("Sending text:", userMessage)
-  revalidatePath("/")
+  console.log("Text sent:", userMessage)
 
-  const messages = await parseConversation({ messages: [...conversation.messages, userMessage] })
-  const { completion: systemText, success: completionFullfilled } = await complete({ messages });
+  const { conversation, success: conversationFetched } = await getConversation()
+  if (!conversationFetched || !conversation || !conversation.messages) {
+    return { success: false }
+  }
+
+  const { completion: systemText, success: completionFullfilled } = await complete();
   if (!completionFullfilled || !systemText) {
     return { success: false }
   }
   const { message: systemMessage, success: systemMessageCreated } = await createMessage({
     content: systemText,
     role: "system",
-    conversationId: conversation.id,
   });
+
 
   if (!systemMessageCreated || !systemMessage) {
     return {
       success: false
     }
   }
-  console.log("Response received from the network:", systemMessage)
-  revalidatePath("/");
-
+  console.log("Text received:", systemMessage)
+  revalidatePath("/")
   return {
     success: true
   }
@@ -110,15 +103,20 @@ export async function submitForm(formData: FormData): Promise<FormSubmissionResp
 async function createMessage({
   content,
   role,
-  conversationId,
 }: CreateMessageArgs): Promise<CreateMessageResponse> {
+  const { conversation, success: conversationFetched } = await getConversation()
+  if (!conversationFetched || !conversation) {
+    return {
+      success: false
+    }
+  }
   const message = await prisma.message.create({
     data: {
       content,
       role,
       conversation: {
         connect: {
-          id: conversationId,
+          id: conversation.id,
         },
       },
     },
@@ -138,36 +136,39 @@ export async function getConversation(): Promise<ConversationFetchResponse> {
   }
   const user = await clerkClient.users.getUser(userId);
   const conversationId = Number(user.privateMetadata.conversationId);
-  if (conversationId) {
-    try {
-      const conversation = await prisma.conversation.findFirst({
-        where: {
-          id: conversationId,
-        },
-        include: {
-          messages: true,
-        },
-      });
-      if (conversation && conversation.messages) {
-        return { conversation, success: true };
-      } else {
-        const { conversation, success: conversationCreated } = await createNewConversation()
-        if (!conversationCreated || conversation) {
-          return {
-            success: false
-          }
-        }
-        return { conversation, success: true }
-      }
-    } catch (error) {
-      throw new Error("Failed to create user conversation");
+  let result;
+  if (!conversationId) {
+    const { conversation: newConversation, success: conversationCreated } = await createNewConversation()
+    if (!conversationCreated || !newConversation || !newConversation.messages) {
+      result = { success: false }
+    } else {
+      result = { conversation: newConversation, success: true }
     }
   } else {
-    return await createNewConversation();
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+      },
+      include: {
+        messages: true,
+      },
+    });
+
+    if (!conversation || !conversation.messages) {
+      result = { success: false }
+    } else {
+      result = { conversation, success: true }
+    }
   }
+
+  return {
+    conversation: result.conversation,
+    success: result.success
+  }
+
 }
 
-export async function transcribe(base64Audio): Promise<TranscribeResponse> {
+export async function sendAudio({ base64Data }: SendAudioArgs) {
   const { userId } = auth();
   if (!userId) {
     return {
@@ -180,67 +181,71 @@ export async function transcribe(base64Audio): Promise<TranscribeResponse> {
       success: false
     }
   }
-  const audioBuffer = Buffer.from(base64Audio, "base64");
 
-  const filePath = "tmp/input.wav";
 
-  try {
-    fs.writeFileSync(filePath, audioBuffer);
+  const { transcript, success: transcribedSuccessfully } = await transcribe({ base64Data })
 
-    const readStream = fs.createReadStream(filePath);
-
-    const transcript = await openai.audio.transcriptions.create({
-      file: readStream,
-      model: "whisper-1",
-    });
-
-    const { conversation, success: conversationFetched } = await getConversation();
-
-    if (!conversationFetched || !conversation) {
-      return { success: false }
+  if (!transcribedSuccessfully || !transcript) {
+    return {
+      success: false
     }
-    const { message: userMessage, success: transcriptSaved } = await createMessage({
-      content: transcript.text,
-      role: "user",
-      conversationId: conversation.id,
-    })
+  }
+  const { message: userMessage, success: transcriptSaved } = await createMessage({
+    content: transcript,
+    role: "user",
+  })
 
-    if (!transcriptSaved || !userMessage) {
-      return { success: false }
-    }
-    console.log(transcript)
-    revalidatePath("/")
-
-    const messages = await parseConversation({ messages: [...conversation.messages, userMessage] })
-
-    const { completion, success: completionFulfilled } = await complete({ messages });
-    if (!completionFulfilled || !completion) {
-      return { success: false }
-    }
-    console.log(completion)
-    const { speechBuffer, success: audioBuffered } = await textToSpeech({ input: completion });
-    if (!audioBuffered || !speechBuffer) {
-      return {
-        success: false
-      }
-    }
-    revalidatePath("/")
-
-    const { audioMessage, success: audioMessageCreated } = await createAudioMessage({ text: userMessage.content, buffer: speechBuffer })
-
-    if (!audioMessageCreated || !audioMessage) {
-      return {
-        success: false
-      }
-    }
-    // Remove the temporary file after successful processing
-    // fs.unlinkSync(filePath);
-    return { success: true };
-  } catch (error) {
-    console.error("Error processing audio:", error)
+  if (!transcriptSaved || !userMessage) {
     return { success: false }
   }
+
+  const { completion: systemText, success: responseReceived } = await complete();
+
+  if (!responseReceived || !systemText) {
+    return {
+      success: false
+    }
+  }
+
+  const { speechBuffer, success: speechGenerated } = await textToSpeech({ input: systemText });
+
+  if (!speechGenerated || !speechBuffer) {
+    return {
+      success: false
+    }
+  }
+
+  const { audioMessage: systemAudioMessage, success: systemAudioMessageCreated } = await createAudioMessage({ text: systemText, buffer: speechBuffer })
+
+  if (!systemAudioMessageCreated || !systemAudioMessage) {
+    return {
+      success: false
+    }
+  }
+
+  revalidatePath("/")
+
 }
+
+export async function transcribe({ base64Data }: TranscribeArgs): Promise<TranscribeResponse> {
+  const filePath = "tmp/input.wav";
+  const audioBuffer = Buffer.from(base64Data, "base64");
+  fs.writeFileSync(filePath, audioBuffer);
+  const readStream = fs.createReadStream(filePath);
+  const transcript = await openai.audio.transcriptions.create({
+    file: readStream,
+    model: "whisper-1",
+  });
+
+  if (!transcript) {
+    return { success: false }
+  }
+
+  return {
+    transcript: transcript.text, success: true
+  }
+}
+
 export async function textToSpeech({ input }: { input: string }): Promise<TextToSpeechResponse> {
   const mp3 = await openai.audio.speech.create({
     model: "tts-1",
@@ -277,37 +282,48 @@ async function createAudioMessage({ text, buffer }: CreateAudioMessageArgs) {
     },
   });
 
-  if (audioMessage) {
-    revalidatePath("/")
-    console.log(audioMessage)
-    return { audioMessage, success: true };
-  } else {
+  if (!audioMessage) {
     return { success: false };
-  }
+  } return { audioMessage, success: true };
 }
 
-export async function complete({ messages }: CreateCompletionArgs) {
-  if (!messages) {
+export async function complete(): Promise<CompleteResponse> {
+  const { conversation, success: conversationFetched } = await getConversation()
+  if (!conversationFetched || !conversation || !conversation.messages) {
+    return {
+      success: false
+    }
+  }
+  const { conversation: formattedConversation, success: conversationMessagesFormatted } = await formatConversation({ conversation })
+  if (!conversationMessagesFormatted || !formattedConversation || !formattedConversation.messages) {
     return {
       success: false
     }
   }
 
   const completion = await openai.chat.completions.create({
-    messages,
+    messages: formattedConversation.messages,
     model: "gpt-3.5-turbo",
   });
 
-  if (!completion) {
+  if (!completion || !completion.choices[0].message.content) {
     return { success: false }
   }
 
   return { completion: completion.choices[0].message.content, success: true };
 }
 
-async function parseConversation({ messages }: { messages: Message[] }) {
-  return messages.map((message) => ({
-    role: message?.role,
-    content: message?.content,
-  }));
+async function formatConversation({ conversation }: { conversation: ConversationWithMessages }): Promise<FormatConversationResponse> {
+  if (!conversation || !conversation.messages) {
+    return { success: false }
+  }
+
+  return {
+    conversation: {
+      ...conversation, messages: conversation.messages.map((message) => ({
+        role: message?.role,
+        content: message?.content,
+      }))
+    }, success: true
+  }
 }

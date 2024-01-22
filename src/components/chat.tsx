@@ -1,127 +1,76 @@
-import { Form } from "@/components/ui/form";
-import { Message } from "@prisma/client";
-import { currentUser } from "@clerk/nextjs";
-import Image from "next/image";
-import { redirect } from "next/navigation";
-import { ConversationWithMessages } from "@/types";
+"use client";
+import { Input } from "@/components/ui/input";
+import React, { useRef, useEffect, useState } from "react";
+import { submitForm } from "@/actions";
+import { Button } from "@/components/ui/button";
+import { Microphone } from "@/components/microphone";
+import Image from "next/image"
+import { useFormStatus } from 'react-dom'
+import Conversation from "@/components/conversation"
+import { ChatArgs } from "@/types";
+import { useOptimisticConversation } from "@/hooks/useOptimisticConversation"
 
-export async function Chat({
-  conversation,
-}: {
-  conversation: ConversationWithMessages;
-}) {
-  const user = await currentUser();
-  if (!user) {
-    redirect("/sign-in");
-  }
+
+export function Chat({ conversation, userAvatar }: ChatArgs) {
+  const { optimisticConversation, addOptimisticMessage } = useOptimisticConversation({ initialConversation: conversation })
+
   return (
     <>
-      <ul className="flex flex-col gap-2">
-        {conversation.messages
-          .slice(1)
-          .map((message: Message) =>
-            message.role === "user" ? (
-              <UserMessage
-                userImageUrl={user.imageUrl}
-                key={message.id}
-                message={message}
-              />
-            ) : (
-              <SystemMessage key={message.id} message={message} />
-            )
-          )}
-      </ul>
-      <div className="sticky bottom-0">
-        <Form />
-      </div>
+      <Conversation conversation={optimisticConversation} userAvatar={userAvatar} />
+      <Microphone />
+      <form
+        action={async (formData: FormData) => {
+          const [prompt, promptIsValid] = [formData.get("prompt"), formData.get("prompt") !== ""]
+          if (!promptIsValid || !prompt) {
+            return {
+              success: false
+            }
+          }
+          addOptimisticMessage({
+            role: "user",
+            content: prompt,
+          })
+          await submitForm(formData)
+        }}
+        className="flex flex-col space-x-2 w-full items-center mt-[2.25rem] pb-8 bg-white sticky bottom-0"
+      >
+        <Entry />
+      </form>
     </>
   );
 }
 
-function SystemMessage({ message }: { message: Message }) {
+export function Entry() {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [lastPrompt, setPrompt] = useState("")
+  const { pending } = useFormStatus()
+
+  useEffect(() => {
+    if (inputRef.current && pending) {
+      setPrompt(inputRef.current.value)
+      inputRef.current.value = ""
+    } else if (lastPrompt && !pending) {
+      setPrompt("")
+    }
+  }, [pending])
+
   return (
-    <li className="flex items-start gap-4">
-      <Image
-        className="rounded-full object-cover"
-        src="/tree.png"
-        alt="system avatar"
-        height={32}
-        width={32}
-      />
-      <div className="flex flex-col">
-        <p className="font-bold">System</p>
-        <p>{message.content}</p>
-        <SystemMessageActions />
-      </div>
-    </li>
-  );
+    <>
+      {pending ? <p>Sending... <i>{lastPrompt}</i></p> : null}
+      <Input disabled={pending} ref={inputRef} type="text" name="prompt" />
+      <Button variant="chat" type="submit" aria-disabled={pending}>
+        <Image src="/send.svg" width={16} height={16} alt="submit button" />
+      </Button>
+    </>
+  )
 }
 
-function SystemMessageActions() {
-  return (
-    <ul className="flex gap-2 opacity-0 hover:opacity-100 cursor-pointer items-center">
-      <MessageActionItem>
-        <Image
-          src="/copy.svg"
-          width={16}
-          height={16}
-          alt="copy answer to clipboard button"
-        />
-      </MessageActionItem>
-      <MessageActionItem>
-        <Image src="/like.svg" width={16} height={16} alt="like answer" />
-      </MessageActionItem>
-      <MessageActionItem>
-        <Image
-          src="/downvote.svg"
-          width={16}
-          height={16}
-          alt="downvote answer"
-        />
-      </MessageActionItem>
-    </ul>
-  );
-}
 
-function MessageActionItem({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="p-2 hover:bg-gradient-to-r from-zinc-200 to-zinc-300 rounded">
-      {children}
-    </li>
-  );
-}
 
-function UserMessageActions() {
-  return (
-    <ul className="flex gap-2 opacity-0 hover:opacity-100 cursor-pointer items-center">
-      <MessageActionItem>
-        <Image src="/edit.svg" width={16} height={16} alt="edit prompt" />
-      </MessageActionItem>
-    </ul>
-  );
-}
 
-function UserMessage({
-  message,
-  userImageUrl,
-}: {
-  message: Message;
-  userImageUrl: string;
-}) {
-  return (
-    <li className="flex items-start gap-4">
-      <Image
-        className="rounded-full object-cover"
-        src={userImageUrl}
-        alt="user avatar"
-        height={32}
-        width={32}
-      />
-      <div className="flex flex-col">
-        <p className="font-bold">You</p>
-        <p>{message.content}</p>
-        <UserMessageActions />
-      </div>
-    </li>
-  );
-}
+
+
+
+
+
+

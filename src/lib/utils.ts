@@ -8,8 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 export const blobToBase64 = (blob, callback) => {
   const reader = new FileReader();
   reader.onload = function () {
-    const base64data = reader?.result?.toString().split(",")[1];
-    callback(base64data);
+    const base64Data = reader?.result?.toString().split(",")[1];
+    callback(base64Data);
   };
   reader.readAsDataURL(blob);
 };
