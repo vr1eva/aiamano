@@ -1,22 +1,40 @@
 "use client";
-
+import { useEffect } from "react"
 import { useRecordVoice } from "@/hooks/useRecordVoice";
 import Image from "next/image";
 
-export const Microphone = () => {
-  const { startRecording, stopRecording, recording } = useRecordVoice();
+export const Microphone = ({ addOptimisticMessage }: { addOptimisticMessage: Function }) => {
+  const { startRecording, stopRecording, recording, transcript, processing } = useRecordVoice();
 
+  useEffect(() => {
+    if (transcript) {
+      addOptimisticMessage({
+        role: "user",
+        content: transcript,
+      })
+    }
+  }, [transcript, addOptimisticMessage])
   return (
-    // Button for starting and stopping voice recording
-    <button
-      onMouseDown={startRecording} // Start recording when mouse is pressed
-      onMouseUp={stopRecording} // Stop recording when mouse is released
-      onTouchStart={startRecording} // Start recording when touch begins on a touch device
-      onTouchEnd={stopRecording} // Stop recording when touch ends on a touch device
-      className="border-none bg-transparent w-10"
-    >
-      {/* Microphone icon component */}
-      <Image src={recording ? "/recording.svg" : "/record.svg"} alt="record voice note" height={32} width={32} />
-    </button>
-  );
+    <div className="flex gap-2 items-center my-4">
+      {processing ? <>
+        <button>
+          <Image src={"/processing.svg"} alt="processing icon" height={32} width={32} />
+        </button>
+        <p>Processing audio...</p>
+      </> :
+        <>
+          <button
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onTouchStart={startRecording}
+            onTouchEnd={stopRecording}
+            className="border-none bg-transparent"
+          >
+            <Image src={recording ? "/recording.svg" : "/record.svg"} alt="record voice note" height={32} width={32} />
+          </button>
+          <p className="shrink-0">{recording ? "Listening..." : "Press and hold to record a message"}</p >
+        </>
+      }
+    </div>
+  )
 };

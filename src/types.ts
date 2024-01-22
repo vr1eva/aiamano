@@ -52,7 +52,7 @@ export interface TranscribeArgs {
   base64Data: string
 }
 export interface SendAudioArgs {
-  base64Data: string
+  base64Data: string,
 }
 export type TranscribeResponse = {
   success: boolean,

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { ConversationFetchResponse, CreateMessageResponse, CreateMessageArgs, FormSubmissionResponse, CompleteResponse, TranscribeArgs, SendAudioArgs, ParsedMessage, FormatConversationResponse, TranscribeResponse, TextToSpeechResponse, CreateAudioMessageArgs, ConversationWithMessages } from "@/types";
+import { ConversationFetchResponse, CreateMessageResponse, CreateMessageArgs, FormSubmissionResponse, CompleteResponse, TranscribeArgs, SendAudioArgs, FormatConversationResponse, TranscribeResponse, TextToSpeechResponse, CreateAudioMessageArgs, ConversationWithMessages } from "@/types";
 import fs from "fs";
 import { openai } from "@/openai";
 import { streamToBuffer } from "@/lib/utils";
@@ -190,6 +190,8 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
       success: false
     }
   }
+
+
   const { message: userMessage, success: transcriptSaved } = await createMessage({
     content: transcript,
     role: "user",
@@ -222,9 +224,11 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
       success: false
     }
   }
-
   revalidatePath("/")
-
+  return {
+    transcript,
+    success: true
+  }
 }
 
 export async function transcribe({ base64Data }: TranscribeArgs): Promise<TranscribeResponse> {

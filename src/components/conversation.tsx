@@ -1,9 +1,10 @@
 import Image from "next/image"
 import { ConversationWithOptimisticMessages, OptimisticMessage } from "@/types"
 
-export default function Conversation({ conversation, userAvatar, systemAvatar }: { conversation: ConversationWithOptimisticMessages, userAvatar: string, systemAvatar: string }) {
+export default function Conversation({ conversation, userAvatar, systemAvatar = "/tree.png", separatorRef }: { conversation: ConversationWithOptimisticMessages, userAvatar: string, systemAvatar?: string, separatorRef: React.RefObject<HTMLElement> | null }) {
+
     return (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2 min-h-screen">
             {conversation.messages
                 .slice(1)
                 .map((message: OptimisticMessage, key) =>
@@ -17,6 +18,7 @@ export default function Conversation({ conversation, userAvatar, systemAvatar }:
                         <SystemMessage systemAvatar={systemAvatar} key={key} message={message} />
                     )
                 )}
+            <small ref={separatorRef}></small>
         </ul>
     )
 }
