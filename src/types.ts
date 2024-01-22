@@ -37,7 +37,8 @@ export type ConversationWithOptimisticMessages = Conversation & {
 
 export type OptimisticMessage = {
   role: string,
-  content: string
+  content: string,
+  audio?: Audio
 }
 
 

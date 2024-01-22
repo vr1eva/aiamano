@@ -23,23 +23,33 @@ export default function Conversation({ conversation, userAvatar, systemAvatar = 
     )
 }
 
+function AudioMessage({ audio }) {
+    console.log(audio)
+    return (
+        <p>Audio message</p>
+    )
+}
+
 
 function SystemMessage({ message, systemAvatar }: { message: OptimisticMessage, systemAvatar: string }) {
     return (
-        <li className="flex items-start gap-4">
-            <Image
-                className="rounded-full object-cover"
-                src={systemAvatar}
-                alt="system avatar"
-                height={32}
-                width={32}
-            />
-            <div className="flex flex-col">
-                <p className="font-bold">System</p>
-                <p>{message.content}</p>
-                <SystemMessageActions />
-            </div>
-        </li>
+        <>
+            <li className="flex items-start gap-4">
+                <Image
+                    className="rounded-full object-cover"
+                    src={systemAvatar}
+                    alt="system avatar"
+                    height={32}
+                    width={32}
+                />
+                <div className="flex flex-col">
+                    <p className="font-bold">System</p>
+                    <p>{message.content}</p>
+                    <SystemMessageActions />
+                </div>
+            </li>
+            {message.audio ? <AudioMessage audio={message.audio} /> : null}
+        </>
     );
 }
 

@@ -3,12 +3,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { sendAudio } from "@/actions";
 import { blobToBase64, createMediaStream } from "@/lib/utils";
 
-interface MediaRecorderEventMap {
-  dataavailable: BlobEvent;
-  stop: Event;
-  start: Event;
-}
-
 export const useRecordVoice = () => {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [transcript, setTranscript] = useState<string>("")
@@ -52,7 +46,7 @@ export const useRecordVoice = () => {
     const mediaRecorder = new MediaRecorder(stream);
 
     mediaRecorder.onstart = () => {
-      createMediaStream(stream, recording, console.log);
+      createMediaStream(stream);
       chunks.current = [];
     };
 

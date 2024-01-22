@@ -82,6 +82,7 @@ export async function submitForm(formData: FormData): Promise<FormSubmissionResp
   if (!completionFullfilled || !systemText) {
     return { success: false }
   }
+
   const { message: systemMessage, success: systemMessageCreated } = await createMessage({
     content: systemText,
     role: "system",
