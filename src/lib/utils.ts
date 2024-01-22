@@ -5,16 +5,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const blobToBase64 = (blob, callback) => {
+export const blobToBase64 = (blob: Blob, callback: (base64Data: string) => Promise<void>) => {
   const reader = new FileReader();
   reader.onload = function () {
     const base64Data = reader?.result?.toString().split(",")[1];
+    if (!base64Data) {
+      return
+    }
     callback(base64Data);
   };
   reader.readAsDataURL(blob);
 };
 
-const getPeakLevel = (analyzer) => {
+const getPeakLevel = (analyzer: AnalyserNode) => {
   const array = new Uint8Array(analyzer.fftSize);
 
   analyzer.getByteTimeDomainData(array);
@@ -25,7 +28,7 @@ const getPeakLevel = (analyzer) => {
   );
 };
 
-export const createMediaStream = (stream, isRecording, callback) => {
+export const createMediaStream = (stream: MediaStream, isRecording: boolean, callback: (peak: number) => void) => {
   const context = new AudioContext();
   const source = context.createMediaStreamSource(stream);
   const analyzer = context.createAnalyser();
@@ -41,6 +44,7 @@ export const createMediaStream = (stream, isRecording, callback) => {
   };
   tick();
 };
+
 export async function streamToBuffer(
   stream: NodeJS.ReadableStream
 ): Promise<Buffer> {

@@ -1,14 +1,20 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { sendAudio } from "@/actions";
 import { blobToBase64, createMediaStream } from "@/lib/utils";
 
+interface MediaRecorderEventMap {
+  dataavailable: BlobEvent;
+  stop: Event;
+  start: Event;
+}
+
 export const useRecordVoice = () => {
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [transcript, setTranscript] = useState("")
-  const [recording, setRecording] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const chunks = useRef([]);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [transcript, setTranscript] = useState<string>("")
+  const [recording, setRecording] = useState<boolean>(false);
+  const [processing, setProcessing] = useState<boolean>(false);
+  const chunks = useRef<Blob[]>([]);
 
   const startRecording = () => {
     if (mediaRecorder) {
@@ -24,7 +30,10 @@ export const useRecordVoice = () => {
     }
   };
 
-  const getText = async (base64Data) => {
+  const getText = async (base64Data: string) => {
+    if (!base64Data) {
+      return
+    }
     setProcessing(true)
     try {
       const { transcript, success: audioTranscribed } = await sendAudio({ base64Data });
@@ -39,16 +48,18 @@ export const useRecordVoice = () => {
     setProcessing(false)
   };
 
-  const initMediaRecorder = (stream) => {
+  const initMediaRecorder = useCallback((stream: MediaStream) => {
     const mediaRecorder = new MediaRecorder(stream);
 
     mediaRecorder.onstart = () => {
-      createMediaStream(stream);
+      createMediaStream(stream, recording, console.log);
       chunks.current = [];
     };
 
     mediaRecorder.ondataavailable = (evt) => {
-      chunks.current.push(evt.data);
+      if (evt.data) {
+        chunks.current.push(evt.data);
+      }
     };
 
     mediaRecorder.onstop = () => {
@@ -57,15 +68,18 @@ export const useRecordVoice = () => {
     };
 
     setMediaRecorder(mediaRecorder);
-  };
+  }, [recording]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       navigator.mediaDevices
         .getUserMedia({ audio: true })
-        .then(initMediaRecorder);
+        .then(initMediaRecorder)
+        .catch((error) => {
+          console.error("Error accessing microphone:", error);
+        });
     }
-  }, []);
+  }, [initMediaRecorder]);
 
   return { recording, startRecording, stopRecording, transcript, processing };
 };
