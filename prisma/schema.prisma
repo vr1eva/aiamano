@@ -21,13 +21,12 @@ model Message {
   createdAt      DateTime     @default(now())
   conversationId Int
   audio          Audio?       @relation("AudioMessage")
-
   @@index([conversationId])
 }
 
 model Audio {
   id        Int     @id @default(autoincrement())
-  content   Bytes
+  content   Buffer
   message   Message @relation("AudioMessage", fields: [messageId], references: [id])
   messageId Int     @unique
 

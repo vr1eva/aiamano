@@ -10,13 +10,13 @@ import Conversation from "@/components/conversation";
 import { ChatArgs } from "@/types";
 import { useOptimisticConversation } from "@/hooks/useOptimisticConversation";
 import { scrollUntilElementIsVisible } from "@/lib/utils";
+import { useRecordVoice } from "@/hooks/useRecordVoice";
 
 export function Chat({ conversation, userAvatar }: ChatArgs) {
   const { optimisticConversation, addOptimisticMessage } =
     useOptimisticConversation({ initialConversation: conversation });
   const separatorRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    console.log(optimisticConversation.messages);
     scrollUntilElementIsVisible({ ref: separatorRef });
   }, [optimisticConversation.messages]);
   return (
@@ -64,6 +64,8 @@ export function Entry({
   addOptimisticMessage: Function;
   scrollToLastMessage: Function;
 }) {
+  const { startRecording, stopRecording, recording, transcript, processing } =
+    useRecordVoice();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { pending } = useFormStatus();
 
@@ -78,13 +80,14 @@ export function Entry({
   return (
     <>
       <Microphone
+        startRecording={startRecording} stopRecording={stopRecording} recording={recording} transcript={transcript} processing={processing}
         addOptimisticTranscript={addOptimisticMessage}
         scrollToLastMessage={scrollToLastMessage}
         occupied={pending}
       />
-      <Input disabled={pending} ref={inputRef} type="text" name="prompt" />
+      <Input disabled={pending || processing} ref={inputRef} type="text" name="prompt" />
       <Button variant="chat" type="submit" aria-disabled={pending}>
-        <Image src="/send.svg" width={16} height={16} alt="submit button" />
+        <Image src="/send.svg" width={36} height={36} alt="submit button" />
       </Button>
     </>
   );

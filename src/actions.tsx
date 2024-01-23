@@ -324,18 +324,21 @@ async function createAudioMessage({
       success: false,
     };
   }
+
+  const { message: textMessage, success: messageCreated } = await createMessage({
+    content: text,
+    role: role as ROLE_ENUM,
+  })
+
+  if (!messageCreated || !textMessage) {
+    return { success: false }
+  }
   const audioMessage = await prisma.audio.create({
     data: {
       content: buffer,
       message: {
-        create: {
-          role,
-          content: text,
-          conversation: {
-            connect: {
-              id: conversation.id,
-            },
-          },
+        connect: {
+          id: textMessage.id
         },
       },
     },
@@ -344,6 +347,7 @@ async function createAudioMessage({
   if (!audioMessage) {
     return { success: false };
   }
+
   return { audioMessage, success: true };
 }
 

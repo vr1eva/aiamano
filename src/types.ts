@@ -18,6 +18,9 @@ export enum ROLE_ENUM {
   assistant = "assistant",
   system = "system",
 }
+export enum CONVERSATION_OFFSET {
+  "default" = 1
+}
 
 export type CompletionMessage = {
   role: "user" | "assistant" | "system";
@@ -108,4 +111,10 @@ export interface Agent {
 
 export interface AudioMessageProps {
   audio: Audio;
+}
+
+
+export interface MessageArgs {
+  message: OptimisticMessage,
+  avatar: string
 }

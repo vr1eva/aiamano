@@ -1,19 +1,19 @@
 "use client";
-import { startTransition, useEffect } from "react";
-import { useRecordVoice } from "@/hooks/useRecordVoice";
+import { MouseEventHandler, TouchEventHandler, startTransition, useEffect } from "react";
 import Image from "next/image";
 
 export const Microphone = ({
   addOptimisticTranscript,
   occupied,
   scrollToLastMessage,
+  startRecording, stopRecording, recording, transcript, processing
 }: {
-  scrollToLastMessage: Function;
-  addOptimisticTranscript: Function;
-  occupied: boolean;
+  scrollToLastMessage: Function,
+  addOptimisticTranscript: Function,
+  occupied: boolean,
+  startRecording: MouseEventHandler<HTMLButtonElement>, stopRecording: MouseEventHandler<HTMLButtonElement>, recording: boolean, transcript: string, processing: boolean
 }) => {
-  const { startRecording, stopRecording, recording, transcript, processing } =
-    useRecordVoice();
+
 
   useEffect(() => {
     if (transcript) {
@@ -33,26 +33,24 @@ export const Microphone = ({
             <Image
               src={"/processing.svg"}
               alt="processing icon"
-              height={32}
-              width={32}
+              height={10}
+              width={48}
             />
           </button>
-          <p>Waiting...</p>
+          <p>Waiting for a response...</p>
         </>
       ) : (
         <>
           <button
             onMouseDown={startRecording}
             onMouseUp={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
             className="border-none bg-transparent"
           >
             <Image
               src={recording ? "/recording.svg" : "/record.svg"}
               alt="record voice note"
-              height={32}
-              width={32}
+              height={recording ? 64 : 48}
+              width={recording ? 64 : 48}
             />
           </button>
           <p className="shrink-0">
