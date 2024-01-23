@@ -1,14 +1,14 @@
 "use client";
-import { MouseEventHandler, TouchEventHandler, startTransition, useEffect } from "react";
+import { MouseEventHandler, startTransition, useEffect } from "react";
 import Image from "next/image";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export const Microphone = ({
   addOptimisticTranscript,
   occupied,
-  scrollToLastMessage,
-  startRecording, stopRecording, recording, transcript, processing
+  processing,
+  startRecording, stopRecording, recording, transcript
 }: {
-  scrollToLastMessage: Function,
   addOptimisticTranscript: Function,
   occupied: boolean,
   startRecording: MouseEventHandler<HTMLButtonElement>, stopRecording: MouseEventHandler<HTMLButtonElement>, recording: boolean, transcript: string, processing: boolean
@@ -26,16 +26,11 @@ export const Microphone = ({
     }
   }, [transcript, addOptimisticTranscript]);
   return (
-    <div className="flex gap-2 items-center my-4">
+    <div className="flex gap-2 items-center my-4 pl-1">
       {processing || occupied ? (
         <>
           <button>
-            <Image
-              src={"/processing.svg"}
-              alt="processing icon"
-              height={10}
-              width={48}
-            />
+            <LoadingSpinner />
           </button>
           <p>Waiting for a response...</p>
         </>

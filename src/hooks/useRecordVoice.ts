@@ -21,6 +21,7 @@ export const useRecordVoice = () => {
     if (mediaRecorder) {
       mediaRecorder.stop();
       setRecording(false);
+      setProcessing(true)
     }
   };
 
@@ -28,18 +29,16 @@ export const useRecordVoice = () => {
     if (!base64Data) {
       return
     }
-    setProcessing(true)
     try {
       const { transcript, success: audioTranscribed } = await sendAudio({ base64Data });
       if (!audioTranscribed || !transcript) {
-        setProcessing(false)
         return
       }
+      setProcessing(false)
       setTranscript(transcript)
     } catch (error) {
       console.log(error);
     }
-    setProcessing(false)
   };
 
   const initMediaRecorder = useCallback((stream: MediaStream) => {

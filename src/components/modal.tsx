@@ -1,7 +1,6 @@
 'use client'
 import { useCallback, useRef, useEffect, MouseEventHandler } from 'react'
 import { useRouter } from 'next/navigation'
-import Frame from "@/components/frame"
 
 export default function Modal({ children }: { children: React.ReactNode }) {
     const overlay = useRef(null)
@@ -41,11 +40,9 @@ export default function Modal({ children }: { children: React.ReactNode }) {
         >
             <div
                 ref={wrapper}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full sm:w-10/12 md:w-8/12 lg:w-1/2 p-6"
+                className="flex justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full sm:w-10/12 md:w-8/12 lg:w-1/2 p-6"
             >
-                <Frame>
-                    {children}
-                </Frame>
+                {children}
             </div>
         </div>
     )

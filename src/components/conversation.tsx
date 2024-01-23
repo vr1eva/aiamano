@@ -3,8 +3,11 @@ import {
     ConversationWithOptimisticMessages,
     OptimisticMessage,
     CONVERSATION_OFFSET,
-    MessageArgs
+    MessageArgs,
+    ROLE_ENUM,
+    MessageWithAudio
 } from "@/types";
+
 import Link from 'next/link'
 
 export default function Conversation({
@@ -19,7 +22,7 @@ export default function Conversation({
     separatorRef: React.RefObject<HTMLElement> | null;
 }) {
     return (
-        <ul className="flex flex-col gap-2 min-h-screen">
+        <ul className="flex flex-col gap-4 min-h-screen">
             {conversation.messages
                 .slice(1 as CONVERSATION_OFFSET)
                 .map((message: OptimisticMessage, key) =>
@@ -50,8 +53,8 @@ function Message({
                 <div className="flex flex-col">
                     <p className="font-bold">{message.role === "user" ? "You" : "System"}</p>
                     <p>{message.content}</p>
-                    <MessageActions role={message.role} />
-                    {message.audio ? <Link href={`/audios/${message.audio.id}`} passHref>Play audio</Link> : null}
+                    {/* <MessageActions role={message.role} /> */}
+                    {message.audio ? <MessageAudioLink role={message.role as ROLE_ENUM} message={message as MessageWithAudio} /> : null}
                 </div>
             </li>
         </>
@@ -98,4 +101,18 @@ function MessageActionItem({ children }: { children: React.ReactNode }) {
             {children}
         </li>
     );
+}
+function MessageAudioLink({ role, message }: { role: ROLE_ENUM, message: MessageWithAudio }) {
+    if (!message || !message.audio) {
+        return null
+    }
+    if (role === "system") {
+        return (
+            <Link className="flex items-center mt-2" href={"/audios/" + message.audio.id} scroll={false}>
+                <Image width={24} height={24} src="/play.svg" alt="play circle" />
+                <p className="font-extralight">Listen</p>
+            </Link>
+        );
+    }
+
 }

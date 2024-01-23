@@ -16,8 +16,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal
 }: {
-  children: React.ReactNode
+  children: React.ReactNode,
+  modal: React.ReactNode
 }) {
   return (
     <html lang="en">
@@ -25,7 +27,10 @@ export default function RootLayout({
         <body className={cn(
           "h-full bg-background font-sans antialiased py-3 px-4",
           fontSans.variable
-        )}>{children}</body>
+        )}>
+          {modal}
+          {children}
+        </body>
       </ClerkProvider>
     </html>
   )

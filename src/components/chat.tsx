@@ -48,9 +48,7 @@ export function Chat({ conversation, userAvatar }: ChatArgs) {
       >
         <Entry
           addOptimisticMessage={addOptimisticMessage}
-          scrollToLastMessage={() => {
-            scrollUntilElementIsVisible({ ref: separatorRef });
-          }}
+          separatorRef={separatorRef}
         />
       </form>
     </>
@@ -59,10 +57,10 @@ export function Chat({ conversation, userAvatar }: ChatArgs) {
 
 export function Entry({
   addOptimisticMessage,
-  scrollToLastMessage,
+  separatorRef,
 }: {
   addOptimisticMessage: Function;
-  scrollToLastMessage: Function;
+  separatorRef: React.RefObject<HTMLElement>;
 }) {
   const { startRecording, stopRecording, recording, transcript, processing } =
     useRecordVoice();
@@ -77,15 +75,20 @@ export function Entry({
     }
   }, [pending]);
 
+  useEffect(() => {
+    if (!processing && transcript) {
+      scrollUntilElementIsVisible({ ref: separatorRef })
+    }
+  }, [processing, transcript, separatorRef]);
+
   return (
     <>
       <Microphone
         startRecording={startRecording} stopRecording={stopRecording} recording={recording} transcript={transcript} processing={processing}
         addOptimisticTranscript={addOptimisticMessage}
-        scrollToLastMessage={scrollToLastMessage}
         occupied={pending}
       />
-      <Input disabled={pending || processing} ref={inputRef} type="text" name="prompt" />
+      <Input disabled={pending || processing || recording} ref={inputRef} type="text" name="prompt" />
       <Button variant="chat" type="submit" aria-disabled={pending}>
         <Image src="/send.svg" width={36} height={36} alt="submit button" />
       </Button>
