@@ -26,7 +26,7 @@ model Message {
 
 model Audio {
   id        Int     @id @default(autoincrement())
-  content   Buffer
+  content   Bytes
   message   Message @relation("AudioMessage", fields: [messageId], references: [id])
   messageId Int     @unique
 
