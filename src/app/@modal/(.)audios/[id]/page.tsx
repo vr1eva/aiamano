@@ -21,7 +21,7 @@ export default async function AudioModal({
     const audioSource = `data:audio/mpeg;base64,${base64String}`;
     return (
         <Modal>
-            <audio controls>
+            <audio controls autoPlay>
                 <source src={audioSource} type="audio/mpeg" />
                 Your browser does not support the audio element.
             </audio>

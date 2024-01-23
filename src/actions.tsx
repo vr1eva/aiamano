@@ -207,15 +207,19 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
     };
   }
 
+  const filePath = "tmp/input.wav";
+  const userAudioBuffer = Buffer.from(base64Data, "base64");
+  fs.writeFileSync(filePath, userAudioBuffer);
+  const readStream = fs.createReadStream(filePath);
+
   const {
     transcript,
     success: transcribedSuccessfully,
-    buffer: userAudioBuffer,
   } = await transcribe({
-    base64Data,
+    readStream,
   });
 
-  if (!transcribedSuccessfully || !transcript || !userAudioBuffer) {
+  if (!transcribedSuccessfully || !transcript) {
     return {
       success: false,
     };
@@ -274,12 +278,9 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
 }
 
 export async function transcribe({
-  base64Data,
+  readStream,
 }: TranscribeArgs): Promise<TranscribeResponse> {
-  const filePath = "tmp/input.wav";
-  const audioBuffer = Buffer.from(base64Data, "base64");
-  fs.writeFileSync(filePath, audioBuffer);
-  const readStream = fs.createReadStream(filePath);
+
   const transcript = await openai.audio.transcriptions.create({
     file: readStream,
     model: "whisper-1",
@@ -290,7 +291,6 @@ export async function transcribe({
   }
 
   return {
-    buffer: audioBuffer,
     transcript: transcript.text,
     success: true,
   };

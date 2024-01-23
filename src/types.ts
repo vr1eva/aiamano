@@ -1,4 +1,5 @@
 import { Message, Conversation, Audio } from "@prisma/client";
+import fs from "fs"
 
 export type ConversationFetchResponse = {
   conversation?: ConversationWithMessages;
@@ -62,7 +63,7 @@ export type FormSubmissionResponse = {
 };
 
 export interface TranscribeArgs {
-  base64Data: string;
+  readStream: fs.ReadStream;
 }
 export interface SendAudioArgs {
   base64Data: string;
