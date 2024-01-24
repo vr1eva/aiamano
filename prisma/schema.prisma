@@ -21,6 +21,7 @@ model Message {
   createdAt      DateTime     @default(now())
   conversationId Int
   audio          Audio?       @relation("AudioMessage")
+
   @@index([conversationId])
 }
 
@@ -33,8 +34,23 @@ model Audio {
   @@index([messageId])
 }
 
-model Agent {
-  id     Int    @id @default(autoincrement())
-  name   String
-  handle String
+model Assistant {
+  openaiId     String
+  id           Int      @id @default(autoincrement())
+  handle       String
+  createdAt    DateTime @default(now())
+  name         String
+  description  String
+  model        String
+  instructions String
+  tools        Tool[]   @relation("AssistantTools")
+}
+
+model Tool {
+  id          Int       @id @default(autoincrement())
+  type        String
+  assistantId Int
+  assistant   Assistant @relation("AssistantTools", fields: [assistantId], references: [id])
+
+  @@index([assistantId])
 }

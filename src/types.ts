@@ -1,8 +1,13 @@
 import { Message, Conversation, Audio } from "@prisma/client";
-import fs from "fs"
+import { FileObject } from "openai/resources/files";
+import { Thread } from "openai/resources/beta/threads/threads"
 
-export type ConversationFetchResponse = {
-  conversation?: ConversationWithMessages;
+export type AssistantWithMetadata = Assistant & {
+  avatarUrl: string
+}
+
+export type FetchThreadResponse = {
+  thread?: Thread;
   success: boolean;
 };
 
@@ -55,7 +60,7 @@ export type CreateMessageResponse = {
 
 export interface CreateMessageArgs {
   content: string;
-  role: string;
+  role: ROLE_ENUM;
 }
 
 export type FormSubmissionResponse = {
@@ -63,7 +68,7 @@ export type FormSubmissionResponse = {
 };
 
 export interface TranscribeArgs {
-  readStream: fs.ReadStream;
+  audioFile: FileObject;
 }
 export interface SendAudioArgs {
   base64Data: string;

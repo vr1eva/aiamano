@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { Readable } from "stream";
 import {
-  ConversationFetchResponse,
+  FetchThreadResponse,
   CreateMessageResponse,
   CreateMessageArgs,
   FormSubmissionResponse,
@@ -19,8 +20,8 @@ import {
   ConversationWithMessages,
   ROLE_ENUM,
 } from "@/types";
-import fs from "fs";
 import { openai } from "@/openai";
+import { toFile } from "openai"
 import { streamToBuffer } from "@/lib/utils";
 
 const schema = z.object({
@@ -29,37 +30,77 @@ const schema = z.object({
   }),
 });
 
-async function createNewConversation() {
-  const { userId }: { userId: string | null } = auth();
+const assistantId = process.env.OPEN_AI_ASSISTANT_ID as string
+
+async function createThreadWithWelcome() {
+  const { userId } = auth();
   if (!userId) {
-    redirect("/sign-in");
+    return {
+      success: false
+    }
   }
-  try {
-    const conversation = await prisma.conversation.create({
-      data: {
-        messages: {
-          create: [
-            {
-              role: "system",
-              content:
-                "You are Oliver Tree Nickell (born June 29, 1993) is an American musician. Born in Santa Cruz, California.",
-            },
-          ],
-        },
-      },
-      include: {
-        messages: true,
-      },
-    });
+  const user = await clerkClient.users.getUser(userId);
+  const threadId = user.privateMetadata.threadId;
+  if (!threadId) {
+    const thread = await openai.beta.threads.createAndRun({
+      assistant_id: assistantId,
+      thread: {
+        messages: [
+          { role: "user", content: "Help me learn a new language." }
+        ]
+      }
+    })
     await clerkClient.users.updateUserMetadata(userId, {
       privateMetadata: {
-        conversationId: conversation.id,
-      },
+        threadId: thread.id,
+      }
     });
-    return { conversation, success: true };
-  } catch (error) {
-    console.error(error);
-    return { success: false };
+  } else {
+    const thread = await openai.beta.threads.retrieve(threadId as string)
+    return { thread, success: true }
+  }
+}
+
+
+async function createMessage({ content }: CreateMessageArgs) {
+  const { thread, success: threadFetched } = await fetchThread()
+  if (!threadFetched || !thread) {
+    return {
+      success: false
+    }
+  }
+  const message = await openai.beta.threads.messages.create(
+    thread.id, { role: "user", content }
+  )
+  if (!message) {
+    return {
+      success: false
+    }
+  }
+  return { message, success: true }
+}
+
+async function createRun() {
+  const { userId } = auth();
+  if (!userId) {
+    return {
+      success: false
+    }
+  }
+  const user = await clerkClient.users.getUser(userId);
+  const threadId = user.privateMetadata.threadId;
+  if (!threadId) {
+    return { success: false }
+  }
+
+  const run = await openai.beta.threads.runs.create(
+    threadId as string,
+    { assistant_id: assistantId }
+  )
+
+  return {
+    run,
+    success: true
   }
 }
 
@@ -68,13 +109,12 @@ export async function submitForm(
 ): Promise<FormSubmissionResponse> {
   const { userId } = auth();
   if (!userId) {
-    redirect("/sign-in");
+    return { success: false }
   }
   const validatedFields = schema.safeParse({
     prompt: formData.get("prompt"),
   });
-  if (!validatedFields.success) {
-    console.error(validatedFields.error.flatten().fieldErrors);
+  if (!validatedFields.success || !validatedFields.data.prompt) {
     return {
       success: false,
     };
@@ -90,107 +130,84 @@ export async function submitForm(
   }
   console.log("Text sent:", userMessage);
 
-  const { conversation, success: conversationFetched } =
-    await getConversation();
-  if (!conversationFetched || !conversation || !conversation.messages) {
+  const { run: assistantRun, success: runCompleted } =
+    await createRun();
+  if (!assistantRun || !runCompleted) {
     return { success: false };
   }
 
-  const { completion: systemText, success: completionFullfilled } =
-    await complete();
-  if (!completionFullfilled || !systemText) {
-    return { success: false };
-  }
+  // const { message: systemMessage, success: systemMessageCreated } =
+  //   await createMessage({
+  //     content: null,
+  //     role: "system",
+  //   });
 
-  const { message: systemMessage, success: systemMessageCreated } =
-    await createMessage({
-      content: systemText,
-      role: "system",
-    });
-
-  if (!systemMessageCreated || !systemMessage) {
-    return {
-      success: false,
-    };
-  }
-  console.log("Text received:", systemMessage);
-  revalidatePath("/");
+  // if (!systemMessageCreated || !systemMessage) {
+  //   return {
+  //     success: false,
+  //   };
+  // }
+  // console.log("Text received:", systemMessage);
+  // revalidatePath("/");
   return {
     success: true,
   };
 }
 
-async function createMessage({
-  content,
-  role,
-}: CreateMessageArgs): Promise<CreateMessageResponse> {
-  const { conversation, success: conversationFetched } =
-    await getConversation();
-  if (!conversationFetched || !conversation) {
-    return {
-      success: false,
-    };
-  }
-  const message = await prisma.message.create({
-    data: {
-      content,
-      role,
-      conversation: {
-        connect: {
-          id: conversation.id,
-        },
-      },
-    },
-  });
-
-  if (message) {
-    return { message, success: true };
-  } else {
-    return { success: false };
-  }
-}
-
-export async function getConversation(): Promise<ConversationFetchResponse> {
+export async function fetchThread(): Promise<FetchThreadResponse> {
   const { userId } = auth();
   if (!userId) {
-    redirect("/sign-in");
+    return {
+      success: false
+    }
   }
   const user = await clerkClient.users.getUser(userId);
-  const conversationId = Number(user.privateMetadata.conversationId);
-  let result;
-  if (!conversationId) {
-    const { conversation: newConversation, success: conversationCreated } =
-      await createNewConversation();
-    if (!conversationCreated || !newConversation || !newConversation.messages) {
-      result = { success: false };
-    } else {
-      result = { conversation: newConversation, success: true };
+  const threadId = user.privateMetadata.threadId;
+  if (!threadId) {
+    return { success: false }
+  }
+  const thread = await openai.beta.threads.retrieve(threadId as string)
+  if (!thread) {
+    return {
+      success: false
     }
-  } else {
-    const conversation = await prisma.conversation.findFirst({
-      where: {
-        id: conversationId,
-      },
-      include: {
-        messages: {
-          include: {
-            audio: true,
-          },
-        },
-      },
-    });
+  }
+  return { thread, success: true }
+}
 
-    if (!conversation || !conversation.messages) {
-      result = { success: false };
-    } else {
-      result = { conversation, success: true };
+async function attachFile({ fileId }: { fileId: string }) {
+  const assistantFile = await openai.beta.assistants.files.create(
+    assistantId,
+    {
+      file_id: fileId
+    }
+  )
+
+  if (!assistantFile) {
+    return {
+      success: false
     }
   }
 
   return {
-    conversation: result.conversation,
-    success: result.success,
-  };
+    file: assistantFile,
+    success: true
+  }
+}
+
+export async function getAssistants() {
+  const assistants = await openai.beta.assistants.list({
+    order: "desc",
+    limit: 2
+  })
+
+  if (!assistants) {
+    return { success: false }
+  }
+
+  return {
+    assistants, success: true
+  }
 }
 
 export async function sendAudio({ base64Data }: SendAudioArgs) {
@@ -207,16 +224,22 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
     };
   }
 
-  const filePath = "tmp/input.wav";
-  const userAudioBuffer = Buffer.from(base64Data, "base64");
-  fs.writeFileSync(filePath, userAudioBuffer);
-  const readStream = fs.createReadStream(filePath);
+  const userAudioFile = await openai.files.create({
+    file: await toFile(Buffer.from(base64Data), 'input.mp3'),
+    purpose: 'assistants',
+  });
+
+  if (!userAudioFile || !userAudioFile.id) {
+    return { success: false }
+  }
+
+  const userAttachment = await attachFileToAssistant({ fileId: userAudioFile.id, assistantId: await getAssistant() })
 
   const {
     transcript,
     success: transcribedSuccessfully,
   } = await transcribe({
-    readStream,
+    audioFile: userAudioFile,
   });
 
   if (!transcribedSuccessfully || !transcript) {
@@ -278,11 +301,12 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
 }
 
 export async function transcribe({
-  readStream,
+  audioFile,
 }: TranscribeArgs): Promise<TranscribeResponse> {
 
+
   const transcript = await openai.audio.transcriptions.create({
-    file: readStream,
+    file: audioFile,
     model: "whisper-1",
   });
 
