@@ -8,14 +8,13 @@ import Image from "next/image";
 import { useFormStatus } from "react-dom";
 import Conversation from "@/components/thread";
 import { ChatArgs } from "@/types";
-import { useOptimisticThread } from "@/hooks/useOptimisticThread";
+import { useOptimisticMessages } from "@/hooks/useOptimisticThreadMessages";
 import { scrollUntilElementIsVisible } from "@/lib/utils";
 import { useRecordVoice } from "@/hooks/useRecordVoice";
-import { openai } from "@/openai";
 
-export function Chat({ thread, userAvatar }: ChatArgs) {
+export function Chat({ thread, messages, userAvatar }: ChatArgs) {
   const { optimisticMessages, addOptimisticMessage } =
-    useOptimisticMessages({ initialMessages: });
+    useOptimisticMessages({ initialMessages: messages });
   const separatorRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
