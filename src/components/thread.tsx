@@ -1,31 +1,30 @@
 import Image from "next/image";
 import {
-    ConversationWithOptimisticMessages,
-    OptimisticMessage,
-    CONVERSATION_OFFSET,
+    ThreadWithOptimisticMessages,
+    OptimisticThreadMessage,
+    THREAD_MESSAGES_OFFSET,
     MessageArgs,
     ROLE_ENUM,
     MessageWithAudio
 } from "@/types";
-
 import Link from 'next/link'
 
 export default function Conversation({
-    conversation,
+    thread,
     userAvatar,
     systemAvatar = "/tree.png",
     separatorRef,
 }: {
-    conversation: ConversationWithOptimisticMessages;
+    thread: ThreadWithOptimisticMessages;
     userAvatar: string;
     systemAvatar?: string;
     separatorRef: React.RefObject<HTMLElement> | null;
 }) {
     return (
         <ul className="flex flex-col gap-4 min-h-screen">
-            {conversation.messages
-                .slice(1 as CONVERSATION_OFFSET)
-                .map((message: OptimisticMessage, key) =>
+            {thread.messages
+                .slice(1 as THREAD_MESSAGES_OFFSET)
+                .map((message: OptimisticThreadMessage, key) =>
                 (
                     <Message avatar={message.role === "user" ? userAvatar : systemAvatar} key={key} message={message} />
                 )

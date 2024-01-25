@@ -6,24 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Microphone } from "@/components/microphone";
 import Image from "next/image";
 import { useFormStatus } from "react-dom";
-import Conversation from "@/components/conversation";
+import Conversation from "@/components/thread";
 import { ChatArgs } from "@/types";
-import { useOptimisticConversation } from "@/hooks/useOptimisticConversation";
+import { useOptimisticThread } from "@/hooks/useOptimisticThread";
 import { scrollUntilElementIsVisible } from "@/lib/utils";
 import { useRecordVoice } from "@/hooks/useRecordVoice";
+import { openai } from "@/openai";
 
-export function Chat({ conversation, userAvatar }: ChatArgs) {
-  const { optimisticConversation, addOptimisticMessage } =
-    useOptimisticConversation({ initialConversation: conversation });
+export function Chat({ thread, userAvatar }: ChatArgs) {
+  const { optimisticMessages, addOptimisticMessage } =
+    useOptimisticMessages({ initialMessages: });
   const separatorRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     scrollUntilElementIsVisible({ ref: separatorRef });
-  }, [optimisticConversation.messages]);
+  }, [optimisticThread.messages]);
+
   return (
     <>
       <Conversation
         separatorRef={separatorRef}
-        conversation={optimisticConversation}
+        messages={optimisticMessages}
         userAvatar={userAvatar}
       />
       <form

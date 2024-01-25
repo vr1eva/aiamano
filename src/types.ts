@@ -1,8 +1,16 @@
-import { Message, Conversation, Audio } from "@prisma/client";
+import { Conversation, Audio } from "@prisma/client";
 import { FileObject } from "openai/resources/files";
 import { Thread } from "openai/resources/beta/threads/threads"
+import { Run } from "openai/resources/beta/threads/runs/runs";
+import { ThreadMessage } from "openai/resources/beta/threads/messages/messages"
+import { Assistant } from "openai/resources/beta/assistants/assistants"
 
-export type AssistantWithMetadata = Assistant & {
+export type FetchAssistantResponse = {
+  assistant?: Assistant,
+  success: boolean
+}
+
+export type AssistantMetadata = {
   avatarUrl: string
 }
 
@@ -11,8 +19,8 @@ export type FetchThreadResponse = {
   success: boolean;
 };
 
-export type ConversationWithMessages = Conversation & {
-  messages: Message[];
+export type ThreadWithMessages = Conversation & {
+  messages: ThreadMessage[];
 };
 
 export type ConversationWithCompletionMessages = Conversation & {
@@ -24,7 +32,7 @@ export enum ROLE_ENUM {
   assistant = "assistant",
   system = "system",
 }
-export enum CONVERSATION_OFFSET {
+export enum THREAD_MESSAGES_OFFSET {
   "default" = 1
 }
 
@@ -39,11 +47,12 @@ export type PrepareConversationResponse = {
   success: boolean;
 };
 
-export type ConversationWithOptimisticMessages = Conversation & {
-  messages: OptimisticMessage[];
+export type ThreadWithOptimisticMessages = {
+  id: string,
+  messages: OptimisticThreadMessage[];
 };
 
-export type OptimisticMessage = {
+export type OptimisticThreadMessage = {
   role: string;
   content: string;
   audio?: Audio;
@@ -53,14 +62,18 @@ export interface ConversationFetchArgs {
   parsed?: boolean;
 }
 
+export interface CreateMessageArgs {
+  content: string;
+}
+
 export type CreateMessageResponse = {
-  message?: Message;
+  message?: ThreadMessage;
   success: boolean;
 };
 
-export interface CreateMessageArgs {
-  content: string;
-  role: ROLE_ENUM;
+export type CreateRunResponse = {
+  success: boolean;
+  run?: Run;
 }
 
 export type FormSubmissionResponse = {
@@ -100,12 +113,13 @@ export type MessageWithAudio = Message & {
 };
 
 export interface ChatArgs {
-  conversation: ConversationWithMessages;
+  thread: Thread
   userAvatar: string;
+  messages: ThreadMessage[]
 }
 
-export interface UseOptimisticConversationProps {
-  initialConversation: ConversationWithMessages;
+export interface UseOptimisticThreadProps {
+  initialThread: Thread
 }
 
 export interface Agent {

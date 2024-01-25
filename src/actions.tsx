@@ -1,10 +1,8 @@
 "use server";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { Readable } from "stream";
 import {
   FetchThreadResponse,
   CreateMessageResponse,
@@ -19,6 +17,8 @@ import {
   CreateAudioMessageArgs,
   ConversationWithMessages,
   ROLE_ENUM,
+  FetchAssistantResponse,
+  CreateRunResponse,
 } from "@/types";
 import { openai } from "@/openai";
 import { toFile } from "openai"
@@ -30,9 +30,36 @@ const schema = z.object({
   }),
 });
 
-const assistantId = process.env.OPEN_AI_ASSISTANT_ID as string
+const assistantId = process.env.OPENAI_ASSISTANT_ID as string
 
-async function createThreadWithWelcome() {
+export async function fetchAssistant(): Promise<FetchAssistantResponse> {
+  const assistant = await openai.beta.assistants.retrieve(
+    assistantId
+  )
+  if (!assistant) {
+    return {
+      success: false
+    }
+  }
+
+  return {
+    assistant, success: true
+  }
+}
+
+export async function fetchMessages({ threadId }: { threadId: string }) {
+  const messages = await openai.beta.threads.messages.list(
+    threadId
+  )
+
+  if (!messages) {
+    return {
+      success: false
+    }
+  } return messages
+}
+
+async function createThread() {
   const { userId } = auth();
   if (!userId) {
     return {
@@ -46,7 +73,7 @@ async function createThreadWithWelcome() {
       assistant_id: assistantId,
       thread: {
         messages: [
-          { role: "user", content: "Help me learn a new language." }
+          { role: "user", content: "Help me learn things in the world." }
         ]
       }
     })
@@ -62,7 +89,7 @@ async function createThreadWithWelcome() {
 }
 
 
-async function createMessage({ content }: CreateMessageArgs) {
+async function createMessage({ content }: CreateMessageArgs): Promise<CreateMessageResponse> {
   const { thread, success: threadFetched } = await fetchThread()
   if (!threadFetched || !thread) {
     return {
@@ -80,7 +107,7 @@ async function createMessage({ content }: CreateMessageArgs) {
   return { message, success: true }
 }
 
-async function createRun() {
+async function createRun(): Promise<CreateRunResponse> {
   const { userId } = auth();
   if (!userId) {
     return {
@@ -119,22 +146,22 @@ export async function submitForm(
       success: false,
     };
   }
-  const { message: userMessage, success: userMessageCreated } =
+  const { message: threadMessage, success: threadMessageCreated } =
     await createMessage({
       content: validatedFields.data.prompt,
-      role: "user" as ROLE_ENUM,
     });
 
-  if (!userMessageCreated || !userMessage) {
+  if (!threadMessage || !threadMessageCreated) {
     return { success: false };
   }
-  console.log("Text sent:", userMessage);
 
-  const { run: assistantRun, success: runCompleted } =
+  const { run: assistantThreadRun, success: runCompleted } =
     await createRun();
-  if (!assistantRun || !runCompleted) {
+  if (!runCompleted || !assistantThreadRun) {
     return { success: false };
   }
+
+  console.log(assistantThreadRun)
 
   // const { message: systemMessage, success: systemMessageCreated } =
   //   await createMessage({
