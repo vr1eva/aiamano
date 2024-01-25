@@ -1,7 +1,7 @@
 import { useOptimistic } from "react";
 import { OptimisticThreadMessage, ThreadWithOptimisticMessages, UseOptimisticThreadProps } from "@/types"
 
-export const useOptimisticThread = ({ initialThread }: UseOptimisticThreadProps) => {
+export const useOptimisticThreadMessages = ({ initialMessages }: UseOptimisticThreadProps) => {
     const [optimisticThread, addOptimisticMessage] = useOptimistic(
         initialThread,
         (thread: ThreadWithOptimisticMessages, newMessage: OptimisticThreadMessage): ThreadWithOptimisticMessages => (
