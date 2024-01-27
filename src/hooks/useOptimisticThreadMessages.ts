@@ -1,18 +1,16 @@
 import { useOptimistic } from "react";
-import { OptimisticThreadMessage, ThreadWithOptimisticMessages, UseOptimisticThreadProps } from "@/types"
+import { OptimisticThreadMessage, UseOptimisticThreadProps } from "@/types";
 
-export const useOptimisticThreadMessages = ({ initialMessages }: UseOptimisticThreadProps) => {
-    const [optimisticThread, addOptimisticMessage] = useOptimistic(
-        initialThread,
-        (thread: ThreadWithOptimisticMessages, newMessage: OptimisticThreadMessage): ThreadWithOptimisticMessages => (
-            {
-                ...thread,
-                messages: [...thread.messages, newMessage]
-            }
-        )
-    )
+export const useOptimisticThreadMessages = ({
+  initialMessages,
+}: UseOptimisticThreadProps) => {
+  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+    initialMessages,
+    (
+      messages: OptimisticThreadMessage[],
+      newMessage: OptimisticThreadMessage
+    ): OptimisticThreadMessage[] => [...messages, newMessage]
+  );
 
-    return { optimisticThread, addOptimisticMessage }
-}
-
-
+  return { optimisticMessages, addOptimisticMessage };
+};

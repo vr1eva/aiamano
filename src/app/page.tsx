@@ -1,37 +1,45 @@
 import { UserButton } from "@clerk/nextjs";
-import { Chat } from "@/components/chat"
-import { fetchThread, fetchMessages } from "@/actions"
-import { Suspense } from 'react'
+import { Chat } from "@/components/chat";
+import { fetchThread, fetchMessages } from "@/actions";
 import { currentUser } from "@clerk/nextjs/server";
+import Assistants from "@/components/assistants";
 
 export default async function Home() {
-  const { thread, success: threadFetched } = await fetchThread()
-  if (!threadFetched || !thread) return <p>We had a problem loading the chat, please refresh the page.</p>
+  const { thread, success: threadFetched } = await fetchThread();
 
-  const user = await currentUser()
-  if (!user) {
-    return <p>Problem detected fetching user.</p>
+  if (!threadFetched || !thread) {
+    return <p>We had a problem loading the chat, please refresh the page.</p>;
   }
 
-  const messages = await fetchMessages({ threadId: thread.id })
+  const { messages, success: messagesFetched } = await fetchMessages({
+    threadId: thread.id,
+  });
+
+  if (!messagesFetched || !messages) {
+    return null;
+  }
+
+  const user = await currentUser();
+  if (!user) {
+    return <p>Problem detected fetching user.</p>;
+  }
 
   return (
     <div>
       <Navbar />
-      <Suspense fallback={<p>Loading...</p>}>
-        <Chat thread={thread} messages={messages} userAvatar={user.imageUrl} />P
-      </Suspense>
+      <Chat messages={messages.data} userAvatar={user.imageUrl} />
     </div>
-  )
+  );
 }
 
 function Navbar() {
   return (
     <div className="flex justify-between py-2">
       <h1 className="font-bold">Voicechat</h1>
-      <ul className="flex gap-2" >
+      <ul className="flex gap-2">
+        <Assistants />
         <UserButton afterSignOutUrl="/" />
       </ul>
     </div>
-  )
+  );
 }

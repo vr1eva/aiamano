@@ -8,49 +8,8 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Conversation {
-  id       Int       @id @default(autoincrement())
-  messages Message[] @relation("ConversationMessages")
-}
-
-model Message {
-  id             Int          @id @default(autoincrement())
-  role           String
-  content        String       @db.LongText
-  conversation   Conversation @relation("ConversationMessages", fields: [conversationId], references: [id])
-  createdAt      DateTime     @default(now())
-  conversationId Int
-  audio          Audio?       @relation("AudioMessage")
-
-  @@index([conversationId])
-}
-
-model Audio {
-  id        Int     @id @default(autoincrement())
-  content   Bytes
-  message   Message @relation("AudioMessage", fields: [messageId], references: [id])
-  messageId Int     @unique
-
-  @@index([messageId])
-}
-
 model Assistant {
   openaiId     String
   id           Int      @id @default(autoincrement())
-  handle       String
-  createdAt    DateTime @default(now())
-  name         String
-  description  String
-  model        String
-  instructions String
-  tools        Tool[]   @relation("AssistantTools")
-}
-
-model Tool {
-  id          Int       @id @default(autoincrement())
-  type        String
-  assistantId Int
-  assistant   Assistant @relation("AssistantTools", fields: [assistantId], references: [id])
-
-  @@index([assistantId])
+  avatarUrl   String
 }

@@ -1,7 +1,5 @@
-import Assistant from "@/components/assistant"
+import Assistant from "@/components/assistants";
 
 export default async function Admin() {
-    return (
-        <Assistant />
-    )
+  return <Assistant />;
 }

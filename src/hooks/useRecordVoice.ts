@@ -1,11 +1,12 @@
-"use client";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { sendAudio } from "@/actions";
 import { blobToBase64, createMediaStream } from "@/lib/utils";
 
 export const useRecordVoice = () => {
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [transcript, setTranscript] = useState<string>("")
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
+    null
+  );
+  const [transcript, setTranscript] = useState<string>("");
   const [recording, setRecording] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
   const chunks = useRef<Blob[]>([]);
@@ -21,21 +22,23 @@ export const useRecordVoice = () => {
     if (mediaRecorder) {
       mediaRecorder.stop();
       setRecording(false);
-      setProcessing(true)
+      setProcessing(true);
     }
   };
 
   const getText = async (base64Data: string) => {
     if (!base64Data) {
-      return
+      return;
     }
     try {
-      const { transcript, success: audioTranscribed } = await sendAudio({ base64Data });
+      const { transcript, success: audioTranscribed } = await sendAudio({
+        base64Data,
+      });
       if (!audioTranscribed || !transcript) {
-        return
+        return;
       }
-      setProcessing(false)
-      setTranscript(transcript)
+      setProcessing(false);
+      setTranscript(transcript);
     } catch (error) {
       console.log(error);
     }

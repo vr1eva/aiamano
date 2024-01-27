@@ -1,18 +1,45 @@
-import { Conversation, Audio } from "@prisma/client";
+import {
+  Assistant as AssistantAvatar,
+  Conversation,
+  Audio,
+} from "@prisma/client";
 import { FileObject } from "openai/resources/files";
-import { Thread } from "openai/resources/beta/threads/threads"
+import { Thread } from "openai/resources/beta/threads/threads";
 import { Run } from "openai/resources/beta/threads/runs/runs";
-import { ThreadMessage } from "openai/resources/beta/threads/messages/messages"
-import { Assistant } from "openai/resources/beta/assistants/assistants"
+import {
+  ThreadMessage,
+  ThreadMessagesPage,
+  MessageContentImageFile,
+  MessageContentText,
+} from "openai/resources/beta/threads/messages/messages";
+import {
+  Assistant,
+  AssistantsPage,
+} from "openai/resources/beta/assistants/assistants";
 
+export interface FetchAvatarArgs {
+  openaiId: string;
+}
+
+export type FetchAvatarResponse = {
+  success: boolean;
+  avatar?: AssistantAvatar;
+};
 export type FetchAssistantResponse = {
-  assistant?: Assistant,
-  success: boolean
-}
+  assistant?: Assistant;
+  success: boolean;
+};
 
-export type AssistantMetadata = {
-  avatarUrl: string
-}
+export type ListAssistantsResponse = {
+  assistants?: AssistantsPage;
+  success: boolean;
+};
+
+export type AssistantWithMetadata = Assistant & {
+  metadata: {
+    avatarUrl: string;
+  };
+};
 
 export type FetchThreadResponse = {
   thread?: Thread;
@@ -21,6 +48,16 @@ export type FetchThreadResponse = {
 
 export type ThreadWithMessages = Conversation & {
   messages: ThreadMessage[];
+};
+
+export type ThreadMessageContent = {
+  type: string;
+  image_file?: {
+    file_id: string;
+  };
+  text: {
+    value: string;
+  };
 };
 
 export type ConversationWithCompletionMessages = Conversation & {
@@ -32,8 +69,14 @@ export enum ROLE_ENUM {
   assistant = "assistant",
   system = "system",
 }
+
+export enum TOOL_ENUM {
+  function = "function",
+  code_interpreter = "code_interpreter",
+  retrieval = "retrieval",
+}
 export enum THREAD_MESSAGES_OFFSET {
-  "default" = 1
+  "default" = 1,
 }
 
 export type CompletionMessage = {
@@ -47,15 +90,10 @@ export type PrepareConversationResponse = {
   success: boolean;
 };
 
-export type ThreadWithOptimisticMessages = {
-  id: string,
-  messages: OptimisticThreadMessage[];
-};
-
 export type OptimisticThreadMessage = {
   role: string;
-  content: string;
-  audio?: Audio;
+  content: (MessageContentImageFile | MessageContentText)[];
+  audio?: MessageContentImageFile;
 };
 
 export interface ConversationFetchArgs {
@@ -74,10 +112,20 @@ export type CreateMessageResponse = {
 export type CreateRunResponse = {
   success: boolean;
   run?: Run;
+};
+
+export interface FetchMessagesArgs {
+  threadId: string;
 }
+
+export type FetchMessagesResponse = {
+  messages?: ThreadMessagesPage;
+  success: boolean;
+};
 
 export type FormSubmissionResponse = {
   success: boolean;
+  run?: Run;
 };
 
 export interface TranscribeArgs {
@@ -108,18 +156,20 @@ export interface CreateAudioMessageArgs {
   role: ROLE_ENUM;
 }
 
-export type MessageWithAudio = Message & {
-  audio?: Audio;
-};
-
 export interface ChatArgs {
-  thread: Thread
+  messages: ThreadMessage[];
   userAvatar: string;
-  messages: ThreadMessage[]
 }
 
 export interface UseOptimisticThreadProps {
-  initialThread: Thread
+  initialMessages: ThreadMessage[];
+}
+
+export interface ThreadArgs {
+  messages: OptimisticThreadMessage[];
+  userAvatar: string;
+  systemAvatar?: string;
+  separatorRef: React.RefObject<HTMLElement> | null;
 }
 
 export interface Agent {
@@ -133,8 +183,7 @@ export interface AudioMessageProps {
   audio: Audio;
 }
 
-
 export interface MessageArgs {
-  message: OptimisticMessage,
-  avatar: string
+  message: OptimisticMessage;
+  avatarUrl: string;
 }

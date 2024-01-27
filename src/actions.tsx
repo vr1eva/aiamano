@@ -15,119 +15,200 @@ import {
   TranscribeResponse,
   TextToSpeechResponse,
   CreateAudioMessageArgs,
-  ConversationWithMessages,
+  FetchMessagesArgs,
+  FetchMessagesResponse,
   ROLE_ENUM,
   FetchAssistantResponse,
+  ListAssistantsResponse,
   CreateRunResponse,
+  FetchAvatarArgs,
+  FetchAvatarResponse,
 } from "@/types";
 import { openai } from "@/openai";
-import { toFile } from "openai"
+import { toFile } from "openai";
 import { streamToBuffer } from "@/lib/utils";
 
+export async function fetchAvatar({
+  openaiId,
+}: FetchAvatarArgs): Promise<FetchAvatarResponse> {
+  const avatar = await prisma.assistant.findFirst({
+    where: {
+      openaiId,
+    },
+  });
+  if (!avatar) {
+    return {
+      success: false,
+    };
+  }
+  return {
+    success: true,
+    avatar,
+  };
+}
 const schema = z.object({
   prompt: z.string({
     invalid_type_error: "Invalid prompt",
   }),
 });
 
-const assistantId = process.env.OPENAI_ASSISTANT_ID as string
+const [cssAssistantId, jsAssistantId, englishAssistant] = [
+  process.env.OPENAI_CSS_ASSISTANT_ID as string,
+  process.env.OPENAI_JS_ASSISTANT_ID as string,
+  process.env.OPENAI_ENGLISH_ASSISTANT_ID as string,
+];
 
-export async function fetchAssistant(): Promise<FetchAssistantResponse> {
-  const assistant = await openai.beta.assistants.retrieve(
-    assistantId
-  )
-  if (!assistant) {
+export async function listAssistants(): Promise<ListAssistantsResponse> {
+  const assistants = await openai.beta.assistants.list({
+    order: "desc",
+  });
+  if (!assistants) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
 
   return {
-    assistant, success: true
-  }
+    success: true,
+    assistants,
+  };
 }
 
-export async function fetchMessages({ threadId }: { threadId: string }) {
-  const messages = await openai.beta.threads.messages.list(
-    threadId
-  )
+export async function retrieveAssistant({
+  assistantId,
+}: {
+  assistantId: string;
+}): Promise<FetchAssistantResponse> {
+  const assistant = await openai.beta.assistants.retrieve(assistantId);
+  if (!assistant) {
+    return {
+      success: false,
+    };
+  }
 
+  return {
+    assistant,
+    success: true,
+  };
+}
+
+export async function fetchMessages({
+  threadId,
+}: FetchMessagesArgs): Promise<FetchMessagesResponse> {
+  const messages = await openai.beta.threads.messages.list(threadId);
   if (!messages) {
     return {
-      success: false
-    }
-  } return messages
+      success: false,
+    };
+  }
+  return { success: true, messages };
 }
 
 async function createThread() {
   const { userId } = auth();
   if (!userId) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
   const user = await clerkClient.users.getUser(userId);
   const threadId = user.privateMetadata.threadId;
   if (!threadId) {
-    const thread = await openai.beta.threads.createAndRun({
-      assistant_id: assistantId,
-      thread: {
-        messages: [
-          { role: "user", content: "Help me learn things in the world." }
-        ]
-      }
-    })
+    const thread = await openai.beta.threads.create();
     await clerkClient.users.updateUserMetadata(userId, {
       privateMetadata: {
         threadId: thread.id,
-      }
+      },
     });
+    if (!thread) {
+      return { success: false };
+    }
+    return { thread, success: true };
   } else {
-    const thread = await openai.beta.threads.retrieve(threadId as string)
-    return { thread, success: true }
+    const thread = await openai.beta.threads.retrieve(threadId as string);
+    if (!thread) {
+      return { success: false };
+    }
+    return { thread, success: true };
   }
 }
 
-
-async function createMessage({ content }: CreateMessageArgs): Promise<CreateMessageResponse> {
-  const { thread, success: threadFetched } = await fetchThread()
+async function createMessage({
+  content,
+}: CreateMessageArgs): Promise<CreateMessageResponse> {
+  const { thread, success: threadFetched } = await fetchThread();
   if (!threadFetched || !thread) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
-  const message = await openai.beta.threads.messages.create(
-    thread.id, { role: "user", content }
-  )
+  const message = await openai.beta.threads.messages.create(thread.id, {
+    role: "user",
+    content,
+  });
   if (!message) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
-  return { message, success: true }
+  return { message, success: true };
 }
 
 async function createRun(): Promise<CreateRunResponse> {
-  const { userId } = auth();
-  if (!userId) {
+  const { thread, success: threadFetched } = await fetchThread();
+  if (!threadFetched || !thread) {
     return {
-      success: false
-    }
-  }
-  const user = await clerkClient.users.getUser(userId);
-  const threadId = user.privateMetadata.threadId;
-  if (!threadId) {
-    return { success: false }
+      success: false,
+    };
   }
 
-  const run = await openai.beta.threads.runs.create(
-    threadId as string,
-    { assistant_id: assistantId }
-  )
+  const run = await openai.beta.threads.runs.create(thread.id as string, {
+    assistant_id: assistantId,
+  });
+  if (!run) {
+    return { success: false };
+  }
 
+  const { run: completedRun, success: runCompleted } = await pollRun({
+    runId: run.id,
+  });
+  if (!completedRun || !runCompleted) {
+    return {
+      success: false,
+    };
+  }
   return {
-    run,
-    success: true
+    run: completedRun,
+    success: true,
+  };
+}
+
+async function pollRun({ runId }: { runId: string }) {
+  const { thread, success: threadFetched } = await fetchThread();
+  if (!threadFetched || !thread) {
+    return { success: false };
+  }
+  while (true) {
+    try {
+      const run = await openai.beta.threads.runs.retrieve(thread.id, runId);
+
+      if (run.status == "completed") {
+        console.log(`Run ${run.status}`);
+        return {
+          success: true,
+          run,
+        };
+      } else {
+        console.log(run.status);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Adjust the polling interval as needed
+    } catch (error) {
+      console.error(error);
+      return {
+        success: false,
+      };
+    }
   }
 }
 
@@ -136,11 +217,12 @@ export async function submitForm(
 ): Promise<FormSubmissionResponse> {
   const { userId } = auth();
   if (!userId) {
-    return { success: false }
+    return { success: false };
   }
   const validatedFields = schema.safeParse({
     prompt: formData.get("prompt"),
   });
+
   if (!validatedFields.success || !validatedFields.data.prompt) {
     return {
       success: false,
@@ -150,34 +232,18 @@ export async function submitForm(
     await createMessage({
       content: validatedFields.data.prompt,
     });
-
-  if (!threadMessage || !threadMessageCreated) {
+  if (!threadMessageCreated || !threadMessage) {
     return { success: false };
   }
 
-  const { run: assistantThreadRun, success: runCompleted } =
-    await createRun();
-  if (!runCompleted || !assistantThreadRun) {
+  const { run, success: assistantRanAgainstThread } = await createRun();
+  if (!assistantRanAgainstThread || !run) {
     return { success: false };
   }
 
-  console.log(assistantThreadRun)
-
-  // const { message: systemMessage, success: systemMessageCreated } =
-  //   await createMessage({
-  //     content: null,
-  //     role: "system",
-  //   });
-
-  // if (!systemMessageCreated || !systemMessage) {
-  //   return {
-  //     success: false,
-  //   };
-  // }
-  // console.log("Text received:", systemMessage);
-  // revalidatePath("/");
   return {
     success: true,
+    run,
   };
 }
 
@@ -185,56 +251,62 @@ export async function fetchThread(): Promise<FetchThreadResponse> {
   const { userId } = auth();
   if (!userId) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
   const user = await clerkClient.users.getUser(userId);
   const threadId = user.privateMetadata.threadId;
   if (!threadId) {
-    return { success: false }
-  }
-  const thread = await openai.beta.threads.retrieve(threadId as string)
-  if (!thread) {
-    return {
-      success: false
+    const { thread, success: threadCreated } = await createThread();
+    if (!thread || !threadCreated) {
+      return { success: false };
     }
+    return {
+      thread,
+      success: true,
+    };
+  } else {
+    const thread = await openai.beta.threads.retrieve(threadId as string);
+    if (!thread) {
+      return {
+        success: false,
+      };
+    }
+    return { thread, success: true };
   }
-  return { thread, success: true }
 }
 
 async function attachFile({ fileId }: { fileId: string }) {
-  const assistantFile = await openai.beta.assistants.files.create(
-    assistantId,
-    {
-      file_id: fileId
-    }
-  )
+  const assistantFile = await openai.beta.assistants.files.create(assistantId, {
+    file_id: fileId,
+  });
 
   if (!assistantFile) {
     return {
-      success: false
-    }
+      success: false,
+    };
   }
 
   return {
     file: assistantFile,
-    success: true
-  }
+    success: true,
+  };
 }
 
 export async function getAssistants() {
   const assistants = await openai.beta.assistants.list({
     order: "desc",
-    limit: 2
-  })
+    limit: 2,
+  });
 
   if (!assistants) {
-    return { success: false }
+    return { success: false };
   }
 
   return {
-    assistants, success: true
-  }
+    assistants,
+    success: true,
+  };
 }
 
 export async function sendAudio({ base64Data }: SendAudioArgs) {
@@ -252,20 +324,20 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
   }
 
   const userAudioFile = await openai.files.create({
-    file: await toFile(Buffer.from(base64Data), 'input.mp3'),
-    purpose: 'assistants',
+    file: await toFile(Buffer.from(base64Data), "input.mp3"),
+    purpose: "assistants",
   });
 
   if (!userAudioFile || !userAudioFile.id) {
-    return { success: false }
+    return { success: false };
   }
 
-  const userAttachment = await attachFileToAssistant({ fileId: userAudioFile.id, assistantId: await getAssistant() })
+  const userAttachment = await attachFileToAssistant({
+    fileId: userAudioFile.id,
+    assistantId: await getAssistant(),
+  });
 
-  const {
-    transcript,
-    success: transcribedSuccessfully,
-  } = await transcribe({
+  const { transcript, success: transcribedSuccessfully } = await transcribe({
     audioFile: userAudioFile,
   });
 
@@ -330,8 +402,6 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
 export async function transcribe({
   audioFile,
 }: TranscribeArgs): Promise<TranscribeResponse> {
-
-
   const transcript = await openai.audio.transcriptions.create({
     file: audioFile,
     model: "whisper-1",
@@ -376,20 +446,22 @@ async function createAudioMessage({
     };
   }
 
-  const { message: textMessage, success: messageCreated } = await createMessage({
-    content: text,
-    role: role as ROLE_ENUM,
-  })
+  const { message: textMessage, success: messageCreated } = await createMessage(
+    {
+      content: text,
+      role: role as ROLE_ENUM,
+    }
+  );
 
   if (!messageCreated || !textMessage) {
-    return { success: false }
+    return { success: false };
   }
   const audioMessage = await prisma.audio.create({
     data: {
       content: buffer,
       message: {
         connect: {
-          id: textMessage.id
+          id: textMessage.id,
         },
       },
     },
