@@ -12,10 +12,7 @@ import {
   MessageContentImageFile,
   MessageContentText,
 } from "openai/resources/beta/threads/messages/messages";
-import {
-  Assistant,
-  AssistantsPage,
-} from "openai/resources/beta/assistants/assistants";
+import { Assistant } from "openai/resources/beta/assistants/assistants";
 
 export interface FetchAvatarArgs {
   openaiId: string;
@@ -31,14 +28,12 @@ export type FetchAssistantResponse = {
 };
 
 export type ListAssistantsResponse = {
-  assistants?: AssistantsPage;
+  assistants?: Assistant[];
   success: boolean;
 };
 
-export type AssistantWithMetadata = Assistant & {
-  metadata: {
-    avatarUrl: string;
-  };
+export type AssistantMetadata = {
+  avatarUrl: string;
 };
 
 export type FetchThreadResponse = {

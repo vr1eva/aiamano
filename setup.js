@@ -1,18 +1,18 @@
-require("dotenv").config();
-const OpenAI = require("openai");
+import chalk from "chalk";
+import OpenAI from "openai";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const { PrismaClient } = require("@prisma/client");
-export const prisma = new PrismaClient();
 
-async function addAssistant({ assistant }) {
+async function addAssistant({
+  assistantInformation: { instructions, name, tools, model, metadata },
+}) {
   const openaiAssistant = await openai.beta.assistants.create({
-    instructions: assistant.instructions,
-    name: assistant.name,
-    tools: assistant.tools,
-    model: assistant.model,
-    metadata: assistant.metadata,
+    instructions,
+    name,
+    tools,
+    model,
+    metadata,
   });
   if (!openaiAssistant) {
     return {
@@ -35,6 +35,8 @@ async function setup() {
     metadata: {
       avatarUrl:
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Cascade.png",
+      learningPath: "css",
+      chalk: "magenta",
     },
   };
 
@@ -45,10 +47,12 @@ async function setup() {
     model: "gpt-3.5-turbo-1106",
     metadata: {
       avatarUrl: `https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706387031/Tony.png`,
+      learningPath: "english",
+      chalk: "red",
     },
   };
 
-  const jsAssistant = {
+  const tsAssistant = {
     instructions: "You are a TypeScript assistant.",
     name: "Algor",
     tools: [{ type: "code_interpreter" }],
@@ -56,30 +60,27 @@ async function setup() {
     metadata: {
       avatarUrl:
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Algor.png",
+      learningPath: "typescript",
+      chalk: "blue",
     },
   };
 
   try {
-    [cssAssistant, englishTeacher, jsAssistant].map(
+    [cssAssistant, englishTeacher, tsAssistant].map(
       async (assistantInformation) => {
         const { assistant, success: assistantAddedInOpenai } =
-          await addAssistant({ assistant });
+          await addAssistant({ assistantInformation });
+
         if (!assistantAddedInOpenai || !assistant) {
-          console.error("There was an error adding the assistant.");
+          console.error("There was an error adding assistant.");
           return { success: false };
         }
-        console.log(assistant.name + " was added to OpenAI.");
-
-        const avatar = await prisma.avatar.create({
-          openaiId: assistant.id,
-          avatarUrl: assistantInformation.metadata.avatarUrl,
-        });
-        if (!avatar) {
-          return {
-            success: false,
-          };
-        }
-        console.log(assistant.name + " avatar created in Prisma.");
+        console.log(
+          assistantInformation.name + " was added to OpenAI. ",
+          chalk[assistant.metadata.chalk](
+            "#" + assistantInformation.metadata.learningPath
+          )
+        );
       }
     );
   } catch (error) {

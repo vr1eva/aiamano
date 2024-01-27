@@ -21,56 +21,32 @@ import {
   FetchAssistantResponse,
   ListAssistantsResponse,
   CreateRunResponse,
-  FetchAvatarArgs,
-  FetchAvatarResponse,
 } from "@/types";
 import { openai } from "@/openai";
 import { toFile } from "openai";
 import { streamToBuffer } from "@/lib/utils";
 
-export async function fetchAvatar({
-  openaiId,
-}: FetchAvatarArgs): Promise<FetchAvatarResponse> {
-  const avatar = await prisma.assistant.findFirst({
-    where: {
-      openaiId,
-    },
-  });
-  if (!avatar) {
-    return {
-      success: false,
-    };
-  }
-  return {
-    success: true,
-    avatar,
-  };
-}
 const schema = z.object({
   prompt: z.string({
     invalid_type_error: "Invalid prompt",
   }),
 });
 
-const [cssAssistantId, jsAssistantId, englishAssistant] = [
-  process.env.OPENAI_CSS_ASSISTANT_ID as string,
-  process.env.OPENAI_JS_ASSISTANT_ID as string,
-  process.env.OPENAI_ENGLISH_ASSISTANT_ID as string,
-];
-
 export async function listAssistants(): Promise<ListAssistantsResponse> {
   const assistants = await openai.beta.assistants.list({
     order: "desc",
   });
-  if (!assistants) {
+  if (!assistants || !assistants.data) {
     return {
       success: false,
     };
   }
 
+  console.log(assistants);
+
   return {
     success: true,
-    assistants,
+    assistants: assistants.data,
   };
 }
 
