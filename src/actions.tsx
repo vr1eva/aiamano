@@ -21,6 +21,7 @@ import {
   FetchAssistantResponse,
   ListAssistantsResponse,
   CreateRunResponse,
+  FetchThreadArgs,
 } from "@/types";
 import { openai } from "@/openai";
 import { toFile } from "openai";
@@ -77,10 +78,10 @@ export async function fetchMessages({
       success: false,
     };
   }
-  return { success: true, messages };
+  return { success: true, messages: messages.data };
 }
 
-async function createThread() {
+async function createThread({ assistantId }: { assistantId: string }) {
   const { userId } = auth();
   if (!userId) {
     return {
@@ -88,20 +89,26 @@ async function createThread() {
     };
   }
   const user = await clerkClient.users.getUser(userId);
-  const threadId = user.privateMetadata.threadId;
-  if (!threadId) {
+  const assistantThreadId = user.privateMetadata[assistantId];
+  if (!assistantThreadId) {
     const thread = await openai.beta.threads.create();
-    await clerkClient.users.updateUserMetadata(userId, {
+    if (!thread) {
+      return { success: false };
+    }
+    const assistantThread = await clerkClient.users.updateUserMetadata(userId, {
       privateMetadata: {
-        threadId: thread.id,
+        [assistantId]: thread.id,
       },
     });
-    if (!thread) {
+
+    if (!assistantThread) {
       return { success: false };
     }
     return { thread, success: true };
   } else {
-    const thread = await openai.beta.threads.retrieve(threadId as string);
+    const thread = await openai.beta.threads.retrieve(
+      assistantThreadId as string
+    );
     if (!thread) {
       return { success: false };
     }
@@ -223,7 +230,9 @@ export async function submitForm(
   };
 }
 
-export async function fetchThread(): Promise<FetchThreadResponse> {
+export async function fetchThread({
+  assistantId,
+}: FetchThreadArgs): Promise<FetchThreadResponse> {
   const { userId } = auth();
   if (!userId) {
     return {
@@ -231,9 +240,11 @@ export async function fetchThread(): Promise<FetchThreadResponse> {
     };
   }
   const user = await clerkClient.users.getUser(userId);
-  const threadId = user.privateMetadata.threadId;
+  const threadId = user.privateMetadata[assistantId];
   if (!threadId) {
-    const { thread, success: threadCreated } = await createThread();
+    const { thread, success: threadCreated } = await createThread({
+      assistantId,
+    });
     if (!thread || !threadCreated) {
       return { success: false };
     }

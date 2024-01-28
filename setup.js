@@ -27,62 +27,69 @@ async function addAssistant({
 }
 
 async function setup() {
-  const cssAssistant = {
-    instructions: "You are a CSS assistant.",
+  const cssTeacher = {
+    instructions: "You are a CSS teacher that teaches on Harvard.",
     name: "Cascade",
     tools: [{ type: "code_interpreter" }],
     model: "gpt-3.5-turbo-1106",
     metadata: {
       avatarUrl:
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Cascade.png",
-      learningPath: "css",
+      duty: "css",
       chalk: "magenta",
     },
   };
 
-  const englishTeacher = {
-    instructions: "You are an English assistant.",
+  const englishProfessor = {
+    instructions: "You are an English professor.",
     name: "Tony",
     tools: [{ type: "code_interpreter" }],
     model: "gpt-3.5-turbo-1106",
     metadata: {
       avatarUrl: `https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706387031/Tony.png`,
-      learningPath: "english",
+      duty: "english",
       chalk: "red",
     },
   };
 
-  const tsAssistant = {
-    instructions: "You are a TypeScript assistant.",
+  const typeScriptDeveloper = {
+    instructions: "You are a TypeScript senior developer.",
     name: "Algor",
     tools: [{ type: "code_interpreter" }],
     model: "gpt-3.5-turbo-1106",
     metadata: {
       avatarUrl:
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Algor.png",
-      learningPath: "typescript",
+      duty: "typescript",
       chalk: "blue",
     },
   };
 
   try {
-    [cssAssistant, englishTeacher, tsAssistant].map(
-      async (assistantInformation) => {
-        const { assistant, success: assistantAddedInOpenai } =
-          await addAssistant({ assistantInformation });
+    [
+      cssTeacher,
+      englishProfessor,
+      typeScriptDeveloper,
+      doctor,
+      lawyer,
+      plantExpert,
+      director,
+      mathTeacher,
+      spanishTeacher,
+    ].map(async (assistantInformation) => {
+      const { assistant, success: assistantAddedInOpenai } = await addAssistant(
+        { assistantInformation }
+      );
 
-        if (!assistantAddedInOpenai || !assistant) {
-          console.error("There was an error adding assistant.");
-          return { success: false };
-        }
-        console.log(
-          assistantInformation.name + " was added to OpenAI. ",
-          pc[assistant.metadata.chalk](
-            "#" + assistantInformation.metadata.learningPath
-          )
-        );
+      if (!assistantAddedInOpenai || !assistant) {
+        console.error("There was an error adding assistant.");
+        return { success: false };
       }
-    );
+      console.log(
+        assistantInformation.name + " was added to OpenAI. ",
+        pc[assistant.metadata.chalk]("#" + assistantInformation.metadata.duty)
+      );
+    });
   } catch (error) {
     console.error(error);
     return { success: false };

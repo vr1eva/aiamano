@@ -1,7 +1,7 @@
-"use client";
 import Image from "next/image";
 import { Assistant } from "openai/resources/beta/assistants/assistants";
 import { AssistantMetadata } from "@/types";
+import Link from "next/link";
 
 export default async function Assistants({
   assistants,
@@ -17,19 +17,20 @@ export default async function Assistants({
     </ul>
   );
 }
-
 export async function Assistant({ assistant }: { assistant: Assistant }) {
   const { avatarUrl } = assistant.metadata as AssistantMetadata;
   return (
-    <li className="hover:border-dotted" key={assistant.id}>
-      <Image
-        className="rounded-full"
-        src={avatarUrl}
-        width={128}
-        height={128}
-        alt="Assistant avatar"
-      />
-      <p className="text-center">{assistant.name}</p>
-    </li>
+    <Link href={"/assistant/" + assistant.id}>
+      <li className="hover:border-dotted" key={assistant.id}>
+        <Image
+          className="rounded-full"
+          src={avatarUrl}
+          width={128}
+          height={128}
+          alt="Assistant avatar"
+        />
+        <p className="text-center">{assistant.name}</p>
+      </li>
+    </Link>
   );
 }
