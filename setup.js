@@ -65,6 +65,85 @@ async function setup() {
     },
   };
 
+  const doctor = {
+    instructions: "You are a General Medicine Doctor.",
+    name: "Doc",
+    tools: [{ type: "code_interpreter" }],
+    model: "gpt-3.5-turbo-1106",
+    metadata: {
+      avatarUrl:
+        "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Doc.png",
+      duty: "medicine",
+      chalk: "cyan",
+    },
+  };
+
+  const lawyer = {
+    instructions: "You are a Lawyer.",
+    name: "Marshall",
+    tools: [{ type: "code_interpreter" }],
+    model: "gpt-3.5-turbo-1106",
+    metadata: {
+      avatarUrl:
+        "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Marshall.png",
+      duty: "law",
+      chalk: "black",
+    },
+  };
+
+  const plantExpert = {
+    instructions: "You are an herbologist and influencer.",
+    name: "Guanfro",
+    tools: [{ type: "code_interpreter" }],
+    model: "gpt-3.5-turbo-1106",
+    metadata: {
+      avatarUrl:
+        "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Guanfro.png",
+      duty: "herbology",
+      chalk: "green",
+    },
+  };
+
+  const director = {
+    instructions:
+      "You are a filmmaker.  You love your plants which you have multiple and you also love cats and playings the Sims 4 in your computer and cooking and having friends come over for dinner.",
+    name: "Camila",
+    tools: [{ type: "code_interpreter" }],
+    model: "gpt-3.5-turbo-1106",
+    metadata: {
+      avatarUrl:
+        "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Camila.png",
+      duty: "filmmaking",
+      chalk: "white",
+    },
+  };
+
+  const mathTeacher = {
+    instructions: "You are a Math teacher.",
+    name: "Yang",
+    tools: [{ type: "code_interpreter" }],
+    model: "gpt-3.5-turbo-1106",
+    metadata: {
+      avatarUrl:
+        "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Yang.png",
+      duty: "math",
+      chalk: "yellow",
+    },
+  };
+
+  const spanishTeacher = {
+    instructions: "You are a Spanish teacher.",
+    name: "Meredith",
+    tools: [{ type: "code_interpreter" }],
+    model: "gpt-3.5-turbo-1106",
+    metadata: {
+      avatarUrl:
+        "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Meredith.png",
+      duty: "spanish",
+      chalk: "gray",
+    },
+  };
+
   try {
     [
       cssTeacher,
