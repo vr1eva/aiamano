@@ -1,5 +1,5 @@
-import chalk from "chalk";
-import OpenAI from "openai";
+const pc = require("picocolors");
+const OpenAI = require("openai");
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -77,7 +77,7 @@ async function setup() {
         }
         console.log(
           assistantInformation.name + " was added to OpenAI. ",
-          chalk[assistant.metadata.chalk](
+          pc[assistant.metadata.chalk](
             "#" + assistantInformation.metadata.learningPath
           )
         );
