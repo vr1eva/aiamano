@@ -11,6 +11,7 @@ import {
 } from "@/types";
 import Link from "next/link";
 import { ThreadMessage } from "openai/resources/beta/threads/messages/messages";
+import { useOptimisticThreadMessages } from "@/hooks/useOptimisticThreadMessages";
 
 export default async function Thread({
   messages,
@@ -18,6 +19,10 @@ export default async function Thread({
   systemAvatar = "/tree.png",
   separatorRef,
 }: ThreadArgs) {
+  const { optimisticMessages, addOptimisticMessage } =
+    useOptimisticThreadMessages({
+      initialMessages: messages,
+    });
   return (
     <ul className="flex flex-col gap-4 min-h-screen">
       {messages
