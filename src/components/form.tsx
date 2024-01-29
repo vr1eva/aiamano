@@ -9,7 +9,7 @@ import { useFormStatus } from "react-dom";
 import { OptimisticThreadMessage } from "@/types";
 import { useRecordVoice } from "@/hooks/useRecordVoice";
 
-export function Form({
+export default function Form({
   addOptimisticMessage,
 }: {
   addOptimisticMessage: Function;

@@ -71,10 +71,9 @@ export enum THREAD_MESSAGES_OFFSET {
   "default" = 1,
 }
 
-export type OptimisticThreadMessage = {
+export type OptimisticThreadMessage = ThreadMessage | {
   role: string;
   content: (MessageContentImageFile | MessageContentText)[];
-  audio?: MessageContentImageFile;
 };
 
 export interface ConversationFetchArgs {
@@ -148,9 +147,14 @@ export interface UseOptimisticThreadProps {
 
 export interface ThreadArgs {
   messages: ThreadMessage[];
-  userAvatar: string;
-  systemAvatar?: string;
-  separatorRef: React.RefObject<HTMLElement> | null;
+  participants: {
+    user: {
+      avatar: string
+    },
+    system: {
+      avatar: string
+    }
+  }
 }
 
 export interface Agent {

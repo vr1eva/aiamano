@@ -1,10 +1,8 @@
+'use client'
 import Image from "next/image";
 import {
-  OptimisticThreadMessage,
-  ThreadMessageContent,
   THREAD_MESSAGES_OFFSET,
   MessageArgs,
-  ROLE_ENUM,
   ThreadArgs,
   MessageAvatarArgs,
   MessageContentArgs,
@@ -12,30 +10,44 @@ import {
 import Link from "next/link";
 import { ThreadMessage } from "openai/resources/beta/threads/messages/messages";
 import { useOptimisticThreadMessages } from "@/hooks/useOptimisticThreadMessages";
+import Form from "@/components/form"
 
-export default async function Thread({
+
+export default function Thread({
   messages,
-  userAvatar,
-  systemAvatar = "/tree.png",
-  separatorRef,
+  participants
 }: ThreadArgs) {
   const { optimisticMessages, addOptimisticMessage } =
     useOptimisticThreadMessages({
       initialMessages: messages,
     });
   return (
-    <ul className="flex flex-col gap-4 min-h-screen">
-      {messages
-        .slice(1 as THREAD_MESSAGES_OFFSET)
-        .map((message: ThreadMessage, key: number) => (
-          <Message
-            avatar={message.role === "user" ? userAvatar : systemAvatar}
-            key={key}
-            message={message}
-          />
-        ))}
-      <small ref={separatorRef}></small>
-    </ul>
+    <>
+      <ul className="flex flex-col gap-4 min-h-screen">
+        {optimisticMessages
+          .slice(1 as THREAD_MESSAGES_OFFSET)
+          .map((message: ThreadMessage, key: number) => (
+            <Message
+              avatar={message.role === "user" ? participants.user.avatar : participants.system.avatar}
+              key={key}
+              message={message}
+            />
+          ))}
+      </ul>
+      <Form addOptimisticMessage={addOptimisticMessage} />
+    </>
+  );
+}
+
+async function Message({ message, avatar }: MessageArgs) {
+  return (
+    <li className="flex items-start gap-4">
+      <MessageAvatar avatar={avatar} />
+      <div className="flex flex-col">
+        <MessageAuthor role={message.role} />
+        <MessageContent content={message.content} />
+      </div>
+    </li>
   );
 }
 
@@ -72,17 +84,7 @@ function MessageContent({ content: [contentMessage] }: MessageContentArgs) {
   return null;
 }
 
-async function Message({ message, avatar }: MessageArgs) {
-  return (
-    <li className="flex items-start gap-4">
-      <MessageAvatar avatar={avatar} />
-      <div className="flex flex-col">
-        <MessageAuthor role={message.role} />
-        <MessageContent content={message.content} />
-      </div>
-    </li>
-  );
-}
+
 
 function MessageActions({ role }: { role: string }) {
   if (role === "system") {
