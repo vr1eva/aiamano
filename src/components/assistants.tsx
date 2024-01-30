@@ -25,11 +25,11 @@ export async function Assistant({ assistant }: { assistant: Assistant }) {
         <Image
           className="rounded-full"
           src={avatarUrl}
-          width={128}
-          height={128}
+          width={64}
+          height={64}
           alt="Assistant avatar"
         />
-        <p className="text-center">{assistant.name}</p>
+        <p className="text-center text-xs">{assistant.name}</p>
       </li>
     </Link>
   );

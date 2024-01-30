@@ -13,16 +13,8 @@ export interface MessageContentArgs {
   content: Array<MessageContentImageFile | MessageContentText>;
 }
 
-export interface FetchAvatarArgs {
-  openaiId: string;
-}
-
-export type FetchAvatarResponse = {
-  success: boolean;
-  avatar?: Avatar;
-};
 export type FetchAssistantResponse = {
-  assistant: Assistant | undefined;
+  assistant?: Assistant
   success: boolean;
 };
 
@@ -33,6 +25,8 @@ export type ListAssistantsResponse = {
 
 export type AssistantMetadata = {
   avatarUrl: string;
+  duty: string,
+  chalk: string,
 };
 export interface FetchThreadArgs {
   assistantId: string;
@@ -42,9 +36,6 @@ export type FetchThreadResponse = {
   success: boolean;
 };
 
-export type ThreadWithMessages = Conversation & {
-  messages: ThreadMessage[];
-};
 
 export type ThreadMessageContent = {
   type: string;
@@ -82,6 +73,7 @@ export interface ConversationFetchArgs {
 
 export interface CreateMessageArgs {
   content: string;
+  threadId: string;
 }
 
 export type CreateMessageResponse = {
@@ -89,11 +81,25 @@ export type CreateMessageResponse = {
   success: boolean;
 };
 
+export interface CreateRunArgs {
+  threadId: string;
+  assistantId: string;
+}
+
 export type CreateRunResponse = {
   success: boolean;
   run?: Run;
 };
 
+export interface PollRunArgs {
+  runId: string;
+  threadId: string;
+}
+
+export type PollRunResponse = {
+  run?: Run;
+  success: boolean;
+}
 export interface FetchMessagesArgs {
   threadId: string;
 }
@@ -102,6 +108,17 @@ export type FetchMessagesResponse = {
   messages?: ThreadMessage[];
   success: boolean;
 };
+export interface FormArgs {
+  addOptimisticMessage: Function;
+  threadId: string;
+  assistantId: string;
+}
+
+export interface SubmitFormArgs {
+  prompt: string;
+  assistantId: string;
+  threadId: string;
+}
 
 export type FormSubmissionResponse = {
   success: boolean;
@@ -146,12 +163,14 @@ export interface UseOptimisticThreadProps {
 }
 
 export interface ThreadArgs {
+  threadId: string;
+  assistantId: string;
   messages: ThreadMessage[];
   participants: {
     user: {
       avatar: string
     },
-    system: {
+    assistant: {
       avatar: string
     }
   }
@@ -172,3 +191,4 @@ export interface MessageArgs {
 export interface MessageAvatarArgs {
   avatar: string;
 }
+

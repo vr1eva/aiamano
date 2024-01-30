@@ -1,5 +1,8 @@
 import { useOptimistic } from "react";
-import { OptimisticThreadMessage, UseOptimisticThreadProps } from "@/types";
+import { UseOptimisticThreadProps } from "@/types";
+import {
+  ThreadMessage,
+} from "openai/resources/beta/threads/messages/messages";
 
 export const useOptimisticThreadMessages = ({
   initialMessages,
@@ -7,9 +10,9 @@ export const useOptimisticThreadMessages = ({
   const [optimisticMessages, addOptimisticMessage] = useOptimistic(
     initialMessages,
     (
-      messages: OptimisticThreadMessage[],
-      newMessage: OptimisticThreadMessage
-    ): OptimisticThreadMessage[] => [...messages, newMessage]
+      messages: ThreadMessage[],
+      newMessage: ThreadMessage
+    ): ThreadMessage[] => [...messages, newMessage]
   );
 
   return { optimisticMessages, addOptimisticMessage };

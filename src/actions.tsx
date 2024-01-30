@@ -1,7 +1,6 @@
 "use server";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs";
 import { prisma } from "@/prisma";
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import {
   FetchThreadResponse,
@@ -11,7 +10,6 @@ import {
   CompleteResponse,
   TranscribeArgs,
   SendAudioArgs,
-  PrepareConversationResponse,
   TranscribeResponse,
   TextToSpeechResponse,
   CreateAudioMessageArgs,
@@ -21,17 +19,15 @@ import {
   FetchAssistantResponse,
   ListAssistantsResponse,
   CreateRunResponse,
+  CreateRunArgs,
+  PollRunArgs,
+  PollRunResponse,
   FetchThreadArgs,
+  SubmitFormArgs
 } from "@/types";
 import { openai } from "@/openai";
 import { toFile } from "openai";
 import { streamToBuffer } from "@/lib/utils";
-
-const schema = z.object({
-  prompt: z.string({
-    invalid_type_error: "Invalid prompt",
-  }),
-});
 
 export async function listAssistants(): Promise<ListAssistantsResponse> {
   const assistants = await openai.beta.assistants.list({
@@ -51,28 +47,10 @@ export async function listAssistants(): Promise<ListAssistantsResponse> {
   };
 }
 
-export async function retrieveAssistant({
-  assistantId,
-}: {
-  assistantId: string;
-}): Promise<FetchAssistantResponse> {
-  const assistant = await openai.beta.assistants.retrieve(assistantId);
-  if (!assistant) {
-    return {
-      success: false,
-    };
-  }
-
-  return {
-    assistant,
-    success: true,
-  };
-}
-
 export async function fetchMessages({
   threadId,
 }: FetchMessagesArgs): Promise<FetchMessagesResponse> {
-  const messages = await openai.beta.threads.messages.list(threadId);
+  const messages = await openai.beta.threads.messages.list(threadId, { order: "asc" });
   if (!messages) {
     return {
       success: false,
@@ -117,15 +95,9 @@ async function createThread({ assistantId }: { assistantId: string }) {
 }
 
 async function createMessage({
-  content,
+  content, threadId
 }: CreateMessageArgs): Promise<CreateMessageResponse> {
-  const { thread, success: threadFetched } = await fetchThread();
-  if (!threadFetched || !thread) {
-    return {
-      success: false,
-    };
-  }
-  const message = await openai.beta.threads.messages.create(thread.id, {
+  const message = await openai.beta.threads.messages.create(threadId, {
     role: "user",
     content,
   });
@@ -137,15 +109,8 @@ async function createMessage({
   return { message, success: true };
 }
 
-async function createRun(): Promise<CreateRunResponse> {
-  const { thread, success: threadFetched } = await fetchThread();
-  if (!threadFetched || !thread) {
-    return {
-      success: false,
-    };
-  }
-
-  const run = await openai.beta.threads.runs.create(thread.id as string, {
+async function createRun({ assistantId, threadId }: CreateRunArgs): Promise<CreateRunResponse> {
+  const run = await openai.beta.threads.runs.create(threadId as string, {
     assistant_id: assistantId,
   });
   if (!run) {
@@ -153,6 +118,7 @@ async function createRun(): Promise<CreateRunResponse> {
   }
 
   const { run: completedRun, success: runCompleted } = await pollRun({
+    threadId,
     runId: run.id,
   });
   if (!completedRun || !runCompleted) {
@@ -166,17 +132,12 @@ async function createRun(): Promise<CreateRunResponse> {
   };
 }
 
-async function pollRun({ runId }: { runId: string }) {
-  const { thread, success: threadFetched } = await fetchThread();
-  if (!threadFetched || !thread) {
-    return { success: false };
-  }
+async function pollRun({ runId, threadId }: PollRunArgs): Promise<PollRunResponse> {
   while (true) {
     try {
-      const run = await openai.beta.threads.runs.retrieve(thread.id, runId);
-
+      const run = await openai.beta.threads.runs.retrieve(threadId, runId);
       if (run.status == "completed") {
-        console.log(`Run ${run.status}`);
+        revalidatePath("/assistant/");
         return {
           success: true,
           run,
@@ -184,7 +145,6 @@ async function pollRun({ runId }: { runId: string }) {
       } else {
         console.log(run.status);
       }
-
       await new Promise((resolve) => setTimeout(resolve, 1000)); // Adjust the polling interval as needed
     } catch (error) {
       console.error(error);
@@ -196,30 +156,27 @@ async function pollRun({ runId }: { runId: string }) {
 }
 
 export async function submitForm(
-  formData: FormData
+  { prompt, assistantId, threadId }: SubmitFormArgs
 ): Promise<FormSubmissionResponse> {
   const { userId } = auth();
   if (!userId) {
     return { success: false };
   }
-  const validatedFields = schema.safeParse({
-    prompt: formData.get("prompt"),
-  });
-
-  if (!validatedFields.success || !validatedFields.data.prompt) {
+  if (!prompt || !threadId || !assistantId) {
     return {
       success: false,
     };
   }
   const { message: threadMessage, success: threadMessageCreated } =
     await createMessage({
-      content: validatedFields.data.prompt,
+      threadId,
+      content: prompt,
     });
   if (!threadMessageCreated || !threadMessage) {
     return { success: false };
   }
 
-  const { run, success: assistantRanAgainstThread } = await createRun();
+  const { run, success: assistantRanAgainstThread } = await createRun({ assistantId, threadId });
   if (!assistantRanAgainstThread || !run) {
     return { success: false };
   }
@@ -379,7 +336,7 @@ export async function sendAudio({ base64Data }: SendAudioArgs) {
       success: false,
     };
   }
-  revalidatePath("/");
+  revalidatePath("/assistant");
   return {
     transcript,
     success: true,

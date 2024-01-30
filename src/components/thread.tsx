@@ -7,13 +7,14 @@ import {
   MessageAvatarArgs,
   MessageContentArgs,
 } from "@/types";
-import Link from "next/link";
 import { ThreadMessage } from "openai/resources/beta/threads/messages/messages";
 import { useOptimisticThreadMessages } from "@/hooks/useOptimisticThreadMessages";
 import Form from "@/components/form"
 
 
 export default function Thread({
+  threadId,
+  assistantId,
   messages,
   participants
 }: ThreadArgs) {
@@ -25,16 +26,15 @@ export default function Thread({
     <>
       <ul className="flex flex-col gap-4 min-h-screen">
         {optimisticMessages
-          .slice(1 as THREAD_MESSAGES_OFFSET)
           .map((message: ThreadMessage, key: number) => (
             <Message
-              avatar={message.role === "user" ? participants.user.avatar : participants.system.avatar}
+              avatar={message.role === "user" ? participants.user.avatar : participants.assistant.avatar}
               key={key}
               message={message}
             />
           ))}
       </ul>
-      <Form addOptimisticMessage={addOptimisticMessage} />
+      <Form assistantId={assistantId} threadId={threadId} addOptimisticMessage={addOptimisticMessage} />
     </>
   );
 }
@@ -64,7 +64,7 @@ async function MessageAvatar({ avatar }: MessageAvatarArgs) {
 }
 
 function MessageAuthor({ role }: { role: string }) {
-  return <p className="font-bold">{role === "user" ? "You" : "System"}</p>;
+  return <p className="font-bold">{role === "user" ? "You" : "Assistant"}</p>;
 }
 
 function MessageContent({ content: [contentMessage] }: MessageContentArgs) {

@@ -28,7 +28,7 @@ async function addAssistant({
 
 async function setup() {
   const cssTeacher = {
-    instructions: "You are a CSS teacher that teaches on Harvard.",
+    instructions: "You are a CSS teacher that teaches at Harvard.",
     name: "Cascade",
     tools: [{ type: "code_interpreter" }],
     model: "gpt-3.5-turbo-1106",

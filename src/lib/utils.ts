@@ -81,3 +81,7 @@ export async function scrollUntilElementIsVisible({ ref }: { ref: React.RefObjec
     }
   }
 }
+
+export function retrieveAssistant({ assistants, assistantId }: RetrieveAssistantArgs) {
+  return
+}
