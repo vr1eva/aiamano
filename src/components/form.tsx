@@ -8,7 +8,6 @@ import Image from "next/image";
 import { useFormStatus } from "react-dom";
 import { OptimisticThreadMessage, FormArgs } from "@/types";
 import { useRecordVoice } from "@/hooks/useRecordVoice";
-import { revalidatePath } from "next/cache";
 
 export default function Form({
   addOptimisticMessage,

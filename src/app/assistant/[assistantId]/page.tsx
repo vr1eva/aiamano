@@ -17,10 +17,13 @@ export default async function Page({
   const { assistants, success: assistantsFetched } = await listAssistants();
 
   if (!assistantsFetched || !assistants) {
-    return <p>Failed to retrieve assistant information.</p>;
+    return <p>Failed to list all assistants.</p>;
   }
 
-  const { name: assistantName } = assistants.find((assistant: Assistant) => assistant.id === assistantId)
+  const assistant = assistants.find((assistant: Assistant) => assistant.id === assistantId)
+  if (!assistant) {
+    return <p>Failed to retrieve current assistant</p>
+  }
 
   const { thread, success: threadFound } = await fetchThread({
     assistantId
@@ -46,7 +49,7 @@ export default async function Page({
 
   return (
     <div>
-      <h1 className="text-xl">You are talking to {assistantName}</h1>
+      <h1 className="text-xl">You are talking to {assistant.name}</h1>
       <Thread assistantId={assistantId} threadId={thread.id} messages={messages} participants={participants} />
     </div>
   );

@@ -192,3 +192,8 @@ export interface MessageAvatarArgs {
   avatar: string;
 }
 
+export type Topic = {
+  color: string;
+  assistantId: string;
+  name: string;
+}
