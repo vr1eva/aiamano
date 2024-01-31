@@ -7,19 +7,24 @@ import { AssistantMetadata } from "@/types";
 
 export default function Assistant({ assistant }: { assistant: Assistant }) {
     const pathname = usePathname()
-    const { avatarUrl } = assistant.metadata as AssistantMetadata;
+    const { avatarUrl, duty, chalk } = assistant.metadata as AssistantMetadata;
     return (
-        <Link className={`${pathname === '/assistant/' + assistant.id ? 'border-solid border-2 border-indigo-600' : ''}`} href={"/assistant/" + assistant.id}>
-            <li className="hover:border-dotted" key={assistant.id}>
-                <Image
-                    className="rounded-full"
-                    src={avatarUrl}
-                    width={64}
-                    height={64}
-                    alt="Assistant avatar"
-                />
-                <p className="text-center text-xs">{assistant.name}</p>
-            </li>
-        </Link>
+        <div >
+            <Link href={"/assistant/" + assistant.id} className="flex flex-col items-center hover:bg-slate-200 p-2 space-y-1.5">
+                <span className="text-center text-slate-600 font-semibold  text-xs mt-1">{assistant.name}</span>
+                <li className="border-4 rounded-full shadow-md" style={{ borderColor: pathname === '/assistant/' + assistant.id ? "#dee50d" : "#e7e7e778" }} key={assistant.id}>
+                    <Image
+                        className="rounded-full"
+                        src={avatarUrl}
+                        width={64}
+                        height={64}
+                        alt="Assistant avatar"
+                    />
+                </li>
+                <span className="text-xs text-slate-400 hover:underline ">#{duty}</span>
+
+            </Link>
+        </div>
     );
 }
+

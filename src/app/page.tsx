@@ -19,7 +19,6 @@ export default async function Home() {
   return (
     <div>
       <Topics topics={topics} />
-      <Assistants />
     </div>
   );
 }
