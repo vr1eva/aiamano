@@ -4,7 +4,6 @@ import Thread from "@/components/thread";
 import { AssistantMetadata } from "@/types"
 import { Assistant } from "openai/resources/beta/assistants/assistants";
 
-
 export default async function Page({
   params: { assistantId },
 }: {
@@ -49,7 +48,7 @@ export default async function Page({
 
   return (
     <div>
-      <h1 className="text-xl">You are talking to {assistant.name}</h1>
+      <h1 className="text-xl mb-4">You are now connected to {assistant.name}</h1>
       <Thread assistantId={assistantId} threadId={thread.id} messages={messages} participants={participants} />
     </div>
   );

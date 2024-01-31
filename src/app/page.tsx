@@ -1,38 +1,26 @@
-import { UserButton } from "@clerk/nextjs";
-import { listAssistants } from "@/actions";
+import { getTopics } from "@/actions";
 import Assistants from "@/components/assistants";
-import { AssistantMetadata } from "@/types";
-import Link from "next/link"
 import Topics from "@/components/topics"
+import { currentUser } from "@clerk/nextjs/server";
+
+
 
 export default async function Home() {
-  const { success: assistantsRetrieved, assistants } = await listAssistants();
-  if (!assistantsRetrieved || !assistants) {
-    return <p>Problem loading assistants.</p>;
+  const user = await currentUser()
+  if (!user) {
+    return <p>Problem! Help! </p>
   }
 
-  const topics = assistants.map(({ id: assistantId, metadata }) => {
-    const { duty: name, chalk: color } = metadata as AssistantMetadata
-    return { name, color, assistantId }
-  })
-
+  const { topics, success: topicsFetched } = await getTopics()
+  if (!topicsFetched || !topics) {
+    return <p>Problem! Help! </p>
+  }
 
   return (
     <div>
-      <Navbar />
       <Topics topics={topics} />
-      <Assistants assistants={assistants} />
+      <Assistants />
     </div>
   );
 }
 
-function Navbar() {
-  return (
-    <div className="flex justify-between py-2">
-      <h1 className="font-bold">Aiamano</h1>
-      <ul className="flex gap-2">
-        <UserButton afterSignOutUrl="/" />
-      </ul>
-    </div>
-  );
-}

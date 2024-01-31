@@ -1,19 +1,20 @@
 "use client";
 import { Input } from "@/components/ui/input";
+import { v4 as uuidv4 } from "uuid"
 import React, { useRef, } from "react";
 import { submitForm } from "@/actions";
 import { Button } from "@/components/ui/button";
-import { Microphone } from "@/components/microphone";
+// import { Microphone } from "@/components/microphone";
 import Image from "next/image";
 import { useFormStatus } from "react-dom";
 import { OptimisticThreadMessage, FormArgs } from "@/types";
-import { useRecordVoice } from "@/hooks/useRecordVoice";
 
 export default function Form({
   addOptimisticMessage,
   threadId,
   assistantId
 }: FormArgs) {
+  const { pending } = useFormStatus();
   const inputRef = useRef<HTMLInputElement | null>(null);
   async function handleSubmit(formData: FormData) {
     const [prompt, assistantId, threadId] = [formData.get("prompt") as string, formData.get("assistantId") as string, formData.get("threadId") as string]
@@ -27,6 +28,14 @@ export default function Form({
       };
     }
     addOptimisticMessage({
+      id: uuidv4(),
+      file_ids: [],
+      metadata: {},
+      object: "thread.message",
+      run_id: uuidv4(),
+      thread_id: threadId,
+      created_at: 1,
+      assistant_id: assistantId,
       role: "user",
       content: [
         {
@@ -44,32 +53,21 @@ export default function Form({
     }
 
   }
-  const { startRecording, stopRecording, recording, transcript, processing } =
-    useRecordVoice();
-  const { pending } = useFormStatus();
+
 
   return (
     <form
       action={handleSubmit}
       className="flex flex-col space-x-2 w-full  mt-[2.25rem] pb-8 bg-white sticky bottom-0"
     >
-      <Microphone
-        startRecording={startRecording}
-        stopRecording={stopRecording}
-        recording={recording}
-        transcript={transcript}
-        processing={processing}
-        addOptimisticTranscript={addOptimisticMessage}
-        occupied={pending}
-      />
       <Input
-        disabled={pending || processing || recording}
+        disabled={pending}
         ref={inputRef}
         type="text"
         name="prompt"
       />
       <Button variant="chat" type="submit" aria-disabled={pending}>
-        <Image src="/send.svg" width={36} height={36} alt="submit button" />
+        <Image src="/send.svg" width={12} height={12} alt="submit button" />
       </Button>
       <input name="threadId" defaultValue={threadId} hidden />
       <input name="assistantId" defaultValue={assistantId} hidden />

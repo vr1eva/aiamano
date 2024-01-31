@@ -1,36 +1,21 @@
-import Image from "next/image";
 import { Assistant } from "openai/resources/beta/assistants/assistants";
-import { AssistantMetadata } from "@/types";
-import Link from "next/link";
+import AssistantLink from "@/components/assistant"
+import { listAssistants } from "@/actions";
 
-export default async function Assistants({
-  assistants,
-}: {
-  assistants: Assistant[];
-}) {
-  console.log("assistants", assistants);
+export default async function Assistants() {
+  const { success: assistantsRetrieved, assistants } = await listAssistants();
+  if (!assistantsRetrieved || !assistants) {
+    return <p>Problem loading assistants.</p>;
+  }
   return (
-    <ul className="flex gap-2 mb-20">
+    <ul className="flex gap-2 mb-4">
       {assistants.map((assistant: Assistant) => {
-        return <Assistant key={assistant.id} assistant={assistant} />;
+        return (
+          <AssistantLink key={assistant.id} assistant={assistant} />
+        )
       })}
     </ul>
   );
 }
-export async function Assistant({ assistant }: { assistant: Assistant }) {
-  const { avatarUrl } = assistant.metadata as AssistantMetadata;
-  return (
-    <Link href={"/assistant/" + assistant.id}>
-      <li className="hover:border-dotted" key={assistant.id}>
-        <Image
-          className="rounded-full"
-          src={avatarUrl}
-          width={64}
-          height={64}
-          alt="Assistant avatar"
-        />
-        <p className="text-center text-xs">{assistant.name}</p>
-      </li>
-    </Link>
-  );
-}
+
+

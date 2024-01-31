@@ -23,7 +23,8 @@ import {
   PollRunArgs,
   PollRunResponse,
   FetchThreadArgs,
-  SubmitFormArgs
+  SubmitFormArgs,
+  AssistantMetadata
 } from "@/types";
 import { openai } from "@/openai";
 import { toFile } from "openai";
@@ -39,7 +40,6 @@ export async function listAssistants(): Promise<ListAssistantsResponse> {
     };
   }
 
-  console.log(assistants);
 
   return {
     success: true,
@@ -137,7 +137,7 @@ async function pollRun({ runId, threadId }: PollRunArgs): Promise<PollRunRespons
     try {
       const run = await openai.beta.threads.runs.retrieve(threadId, runId);
       if (run.status == "completed") {
-        revalidatePath("/assistant/");
+        revalidatePath("/");
         return {
           success: true,
           run,
@@ -181,10 +181,26 @@ export async function submitForm(
     return { success: false };
   }
 
+  revalidatePath("/assistant")
   return {
     success: true,
     run,
   };
+}
+
+export async function getTopics() {
+  const { assistants, success: assistantsRetrieved } = await listAssistants()
+  if (!assistantsRetrieved || !assistants) {
+    return { success: false }
+  }
+
+  const topics = assistants.map(({ id: assistantId, metadata }) => {
+    const { duty: name, chalk: color } = metadata as AssistantMetadata
+    return { name, color, assistantId }
+  })
+
+  return { topics, success: true }
+
 }
 
 export async function fetchThread({

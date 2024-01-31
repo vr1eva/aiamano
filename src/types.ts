@@ -36,7 +36,6 @@ export type FetchThreadResponse = {
   success: boolean;
 };
 
-
 export type ThreadMessageContent = {
   type: string;
   image_file?: {
@@ -62,10 +61,7 @@ export enum THREAD_MESSAGES_OFFSET {
   "default" = 1,
 }
 
-export type OptimisticThreadMessage = ThreadMessage | {
-  role: string;
-  content: (MessageContentImageFile | MessageContentText)[];
-};
+export type OptimisticThreadMessage = ThreadMessage
 
 export interface ConversationFetchArgs {
   parsed?: boolean;

@@ -3,6 +3,8 @@ import { Inter as FontSans } from "next/font/google"
 import './globals.css'
 import { cn } from "@/lib/utils"
 import { ClerkProvider } from '@clerk/nextjs'
+import Navbar from "@/components/navbar"
+import Assistants from "@/components/assistants"
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -28,6 +30,8 @@ export default function RootLayout({
           "h-full bg-background font-sans antialiased py-3 px-4",
           fontSans.variable
         )}>
+          <Navbar />
+          <Assistants />
           {modal}
           {children}
         </body>

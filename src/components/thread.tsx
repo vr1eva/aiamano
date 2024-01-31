@@ -26,10 +26,10 @@ export default function Thread({
     <>
       <ul className="flex flex-col gap-4 min-h-screen">
         {optimisticMessages
-          .map((message: ThreadMessage, key: number) => (
+          .map((message: ThreadMessage) => (
             <Message
               avatar={message.role === "user" ? participants.user.avatar : participants.assistant.avatar}
-              key={key}
+              key={message.id}
               message={message}
             />
           ))}
