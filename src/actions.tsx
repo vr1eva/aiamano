@@ -24,11 +24,12 @@ import {
   PollRunResponse,
   FetchThreadArgs,
   SubmitFormArgs,
-  AssistantMetadata
+  AssistantMetadata,
 } from "@/types";
 import { openai } from "@/openai";
 import { toFile } from "openai";
 import { streamToBuffer } from "@/lib/utils";
+import { stat } from "fs";
 
 export async function listAssistants(): Promise<ListAssistantsResponse> {
   const assistants = await openai.beta.assistants.list({
@@ -40,7 +41,6 @@ export async function listAssistants(): Promise<ListAssistantsResponse> {
     };
   }
 
-
   return {
     success: true,
     assistants: assistants.data,
@@ -50,7 +50,9 @@ export async function listAssistants(): Promise<ListAssistantsResponse> {
 export async function fetchMessages({
   threadId,
 }: FetchMessagesArgs): Promise<FetchMessagesResponse> {
-  const messages = await openai.beta.threads.messages.list(threadId, { order: "asc" });
+  const messages = await openai.beta.threads.messages.list(threadId, {
+    order: "asc",
+  });
   if (!messages) {
     return {
       success: false,
@@ -95,7 +97,8 @@ async function createThread({ assistantId }: { assistantId: string }) {
 }
 
 async function createMessage({
-  content, threadId
+  content,
+  threadId,
 }: CreateMessageArgs): Promise<CreateMessageResponse> {
   const message = await openai.beta.threads.messages.create(threadId, {
     role: "user",
@@ -109,7 +112,10 @@ async function createMessage({
   return { message, success: true };
 }
 
-async function createRun({ assistantId, threadId }: CreateRunArgs): Promise<CreateRunResponse> {
+async function createRun({
+  assistantId,
+  threadId,
+}: CreateRunArgs): Promise<CreateRunResponse> {
   const run = await openai.beta.threads.runs.create(threadId as string, {
     assistant_id: assistantId,
   });
@@ -133,7 +139,10 @@ async function createRun({ assistantId, threadId }: CreateRunArgs): Promise<Crea
   };
 }
 
-async function pollRun({ runId, threadId }: PollRunArgs): Promise<PollRunResponse> {
+async function pollRun({
+  runId,
+  threadId,
+}: PollRunArgs): Promise<PollRunResponse> {
   while (true) {
     const run = await openai.beta.threads.runs.retrieve(threadId, runId);
     if (run.status === "completed") {
@@ -141,6 +150,9 @@ async function pollRun({ runId, threadId }: PollRunArgs): Promise<PollRunRespons
         success: true,
         run,
       };
+    } else if (run.status === "failed") {
+      console.log(run);
+      return { success: false };
     } else {
       console.log(run.status);
     }
@@ -148,9 +160,11 @@ async function pollRun({ runId, threadId }: PollRunArgs): Promise<PollRunRespons
   }
 }
 
-export async function submitForm(
-  { prompt, assistantId, threadId }: SubmitFormArgs
-): Promise<FormSubmissionResponse> {
+export async function submitForm({
+  prompt,
+  assistantId,
+  threadId,
+}: SubmitFormArgs): Promise<FormSubmissionResponse> {
   const { userId } = auth();
   if (!userId) {
     return { success: false };
@@ -161,7 +175,7 @@ export async function submitForm(
     };
   }
 
-  console.log("submit form", prompt)
+  console.log("submit form", prompt);
   const { message: threadMessage, success: threadMessageCreated } =
     await createMessage({
       threadId,
@@ -171,10 +185,12 @@ export async function submitForm(
     return { success: false };
   }
 
-  console.log("create message", threadMessage)
+  console.log("create message", threadMessage);
 
-
-  const { run, success: assistantRanAgainstThread } = await createRun({ assistantId, threadId });
+  const { run, success: assistantRanAgainstThread } = await createRun({
+    assistantId,
+    threadId,
+  });
   if (!assistantRanAgainstThread || !run) {
     return { success: false };
   }
@@ -186,18 +202,17 @@ export async function submitForm(
 }
 
 export async function getTopics() {
-  const { assistants, success: assistantsRetrieved } = await listAssistants()
+  const { assistants, success: assistantsRetrieved } = await listAssistants();
   if (!assistantsRetrieved || !assistants) {
-    return { success: false }
+    return { success: false };
   }
 
   const topics = assistants.map(({ id: assistantId, metadata }) => {
-    const { duty: name, chalk: color } = metadata as AssistantMetadata
-    return { name, color, assistantId }
-  })
+    const { duty: name, chalk: color } = metadata as AssistantMetadata;
+    return { name, color, assistantId };
+  });
 
-  return { topics, success: true }
-
+  return { topics, success: true };
 }
 
 export async function fetchThread({

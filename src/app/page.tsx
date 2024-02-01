@@ -1,18 +1,17 @@
 import { getTopics } from "@/actions";
-import Topics from "@/components/topics"
+import Topics from "@/components/topics";
 import { currentUser } from "@clerk/nextjs/server";
-
-
+import { redirect } from "next/navigation";
 
 export default async function Home() {
-  const user = await currentUser()
+  const user = await currentUser();
   if (!user) {
-    return <p>Problem! Help! </p>
+    redirect("/sign-in");
   }
 
-  const { topics, success: topicsFetched } = await getTopics()
+  const { topics, success: topicsFetched } = await getTopics();
   if (!topicsFetched || !topics) {
-    return <p>Problem! Help! </p>
+    return <p>Problem! Help! </p>;
   }
 
   return (
@@ -21,4 +20,3 @@ export default async function Home() {
     </div>
   );
 }
-

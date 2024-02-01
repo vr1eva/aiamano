@@ -1,8 +1,10 @@
 import { fetchThread, fetchMessages, listAssistants } from "@/actions";
-import { currentUser } from "@clerk/nextjs"
+import { currentUser } from "@clerk/nextjs";
 import Thread from "@/components/thread";
-import { AssistantMetadata } from "@/types"
+import { AssistantMetadata } from "@/types";
 import { Assistant } from "openai/resources/beta/assistants/assistants";
+import Navbar from "@/components/navbar";
+import Assistants from "@/components/assistants";
 
 export default async function Page({
   params: { assistantId },
@@ -19,13 +21,15 @@ export default async function Page({
     return <p>Failed to list all assistants.</p>;
   }
 
-  const assistant = assistants.find((assistant: Assistant) => assistant.id === assistantId)
+  const assistant = assistants.find(
+    (assistant: Assistant) => assistant.id === assistantId
+  );
   if (!assistant) {
-    return <p>Failed to retrieve current assistant</p>
+    return <p>Failed to retrieve current assistant</p>;
   }
 
   const { thread, success: threadFound } = await fetchThread({
-    assistantId
+    assistantId,
   });
 
   if (!threadFound || !thread) {
@@ -38,19 +42,32 @@ export default async function Page({
     return <p>Failed to retrieves messages.</p>;
   }
 
-  const { avatarUrl: assistantAvatarUrl, duty, chalk } = assistant.metadata as AssistantMetadata
-  const { imageUrl: userAvatarUrl } = user
+  const {
+    avatarUrl: assistantAvatarUrl,
+    duty,
+    chalk,
+  } = assistant.metadata as AssistantMetadata;
+  const { imageUrl: userAvatarUrl } = user;
 
   const participants = {
     user: { avatar: userAvatarUrl },
-    assistant: { avatar: assistantAvatarUrl }
-  }
+    assistant: { avatar: assistantAvatarUrl },
+  };
 
   return (
     <div>
-      <h1 className="text-xl mb-4">Talking with <span className="font-bold">{assistant.name} </span>about <span className="font-bold capitalize">{duty}</span></h1>
-      <Thread assistantId={assistantId} threadId={thread.id} messages={messages} participants={participants} />
-
+      <Navbar />
+      <Assistants />
+      <h1 className="text-xl mb-4">
+        Now talking with <span className="font-bold">{assistant.name} </span>
+        about <span className="font-bold capitalize">{duty}</span>
+      </h1>
+      <Thread
+        assistantId={assistantId}
+        threadId={thread.id}
+        messages={messages}
+        participants={participants}
+      />
     </div>
   );
 }
