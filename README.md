@@ -1,4 +1,6 @@
-Create an .env file and add your OpenAI key including other credentials:
+To initiate the setup, bind your key to the terminal using: OPENAI_API_KEY=<key> npm run setup. To remove all assistants, execute npm run destroy instead.
+
+Create an .env file and add your OpenAI key including other credentials and host locally with npm run dev.
 
 ```env
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
@@ -8,4 +10,3 @@ CLOUDINARY_URL=
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 OPENAI_API_KEY=
 
-To initiate the setup, bind your key to the terminal using: OPENAI_API_KEY=<key> npm run setup. To remove all assistants, execute npm run destroy instead.
