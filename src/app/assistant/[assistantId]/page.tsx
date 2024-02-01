@@ -38,7 +38,7 @@ export default async function Page({
     return <p>Failed to retrieves messages.</p>;
   }
 
-  const { avatarUrl: assistantAvatarUrl } = assistant.metadata as AssistantMetadata
+  const { avatarUrl: assistantAvatarUrl, duty, chalk } = assistant.metadata as AssistantMetadata
   const { imageUrl: userAvatarUrl } = user
 
   const participants = {
@@ -48,8 +48,9 @@ export default async function Page({
 
   return (
     <div>
-      <h1 className="text-xl mb-4">You are now connected to {assistant.name}</h1>
+      <h1 className="text-xl mb-4">Talking with <span className="font-bold">{assistant.name} </span>about <span className="font-bold capitalize">{duty}</span></h1>
       <Thread assistantId={assistantId} threadId={thread.id} messages={messages} participants={participants} />
+
     </div>
   );
 }

@@ -1,3 +1,4 @@
+"use client"
 import { useOptimistic } from "react";
 import { UseOptimisticThreadProps } from "@/types";
 import {

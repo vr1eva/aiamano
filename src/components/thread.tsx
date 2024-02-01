@@ -1,7 +1,6 @@
-'use client'
+"use client"
 import Image from "next/image";
 import {
-  THREAD_MESSAGES_OFFSET,
   MessageArgs,
   ThreadArgs,
   MessageAvatarArgs,

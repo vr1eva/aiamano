@@ -37,7 +37,6 @@ async function setup() {
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Cascade.png",
       duty: "css",
       chalk: "magenta",
-      pronouns: ["he", "him"]
     },
   };
 
@@ -50,7 +49,6 @@ async function setup() {
       avatarUrl: `https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706387031/Tony.png`,
       duty: "english",
       chalk: "red",
-      pronouns: ["he", "him"]
     },
   };
 
@@ -64,13 +62,12 @@ async function setup() {
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Algor.png",
       duty: "typescript",
       chalk: "blue",
-      pronouns: ["he", "him"]
     },
   };
 
   const doctor = {
     instructions: "You are a General Medicine Doctor.",
-    name: "Doc",
+    name: "Gabriel",
     tools: [{ type: "code_interpreter" }],
     model: "gpt-3.5-turbo-1106",
     metadata: {
@@ -78,7 +75,6 @@ async function setup() {
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Doc.png",
       duty: "medicine",
       chalk: "cyan",
-      pronouns: ["he", "him"]
     },
   };
 
@@ -92,7 +88,6 @@ async function setup() {
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Marshall.png",
       duty: "law",
       chalk: "black",
-      pronouns: ["he", "him"]
     },
   };
 
@@ -106,7 +101,6 @@ async function setup() {
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Guanfro.png",
       duty: "herbology",
       chalk: "green",
-      pronouns: ["he", "him"]
     },
   };
 
@@ -121,7 +115,6 @@ async function setup() {
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Camila.png",
       duty: "filmmaking",
       chalk: "white",
-      pronouns: ["he", "him"]
     },
   };
 
@@ -135,7 +128,6 @@ async function setup() {
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Yang.png",
       duty: "math",
       chalk: "yellow",
-      pronouns: ["he", "him"]
     },
   };
 
@@ -149,7 +141,6 @@ async function setup() {
         "https://res.cloudinary.com/dpm6zdvxy/image/upload/v1706070815/Meredith.png",
       duty: "spanish",
       chalk: "gray",
-      pronouns: ["he", "him"]
     },
   };
 

@@ -7,6 +7,7 @@ export default async function Assistants() {
   if (!assistantsRetrieved || !assistants) {
     return <p>Problem loading assistants.</p>;
   }
+
   return (
     <ul className="flex gap-2 mb-4">
       {assistants.map((assistant: Assistant) => {

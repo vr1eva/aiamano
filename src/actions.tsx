@@ -117,41 +117,34 @@ async function createRun({ assistantId, threadId }: CreateRunArgs): Promise<Crea
     return { success: false };
   }
 
-  const { run: completedRun, success: runCompleted } = await pollRun({
+  const { success: runCompleted, run: completedPolledRun } = await pollRun({
     threadId,
     runId: run.id,
   });
-  if (!completedRun || !runCompleted) {
+
+  if (!runCompleted || !completedPolledRun) {
     return {
       success: false,
     };
   }
   return {
-    run: completedRun,
+    run: completedPolledRun,
     success: true,
   };
 }
 
 async function pollRun({ runId, threadId }: PollRunArgs): Promise<PollRunResponse> {
   while (true) {
-    try {
-      const run = await openai.beta.threads.runs.retrieve(threadId, runId);
-      if (run.status == "completed") {
-        revalidatePath("/");
-        return {
-          success: true,
-          run,
-        };
-      } else {
-        console.log(run.status);
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Adjust the polling interval as needed
-    } catch (error) {
-      console.error(error);
+    const run = await openai.beta.threads.runs.retrieve(threadId, runId);
+    if (run.status === "completed") {
       return {
-        success: false,
+        success: true,
+        run,
       };
+    } else {
+      console.log(run.status);
     }
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Adjust the polling interval as needed
   }
 }
 
@@ -167,6 +160,8 @@ export async function submitForm(
       success: false,
     };
   }
+
+  console.log("submit form", prompt)
   const { message: threadMessage, success: threadMessageCreated } =
     await createMessage({
       threadId,
@@ -176,12 +171,14 @@ export async function submitForm(
     return { success: false };
   }
 
+  console.log("create message", threadMessage)
+
+
   const { run, success: assistantRanAgainstThread } = await createRun({ assistantId, threadId });
   if (!assistantRanAgainstThread || !run) {
     return { success: false };
   }
 
-  revalidatePath("/assistant")
   return {
     success: true,
     run,

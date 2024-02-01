@@ -1,5 +1,4 @@
 import { getTopics } from "@/actions";
-import Assistants from "@/components/assistants";
 import Topics from "@/components/topics"
 import { currentUser } from "@clerk/nextjs/server";
 
