@@ -3,11 +3,10 @@ import { currentUser } from "@clerk/nextjs";
 import Thread from "@/components/thread";
 import { AssistantMetadata } from "@/types";
 import { Assistant } from "openai/resources/beta/assistants/assistants";
-import Navbar from "@/components/navbar";
 import Assistants from "@/components/assistants";
 
 export default async function Page({
-  params: { assistantId },
+  params,
 }: {
   params: { assistantId: string };
 }) {
@@ -22,14 +21,14 @@ export default async function Page({
   }
 
   const assistant = assistants.find(
-    (assistant: Assistant) => assistant.id === assistantId
+    (assistant: Assistant) => assistant.id === params.assistantId
   );
   if (!assistant) {
     return <p>Failed to retrieve current assistant</p>;
   }
 
   const { thread, success: threadFound } = await fetchThread({
-    assistantId,
+    assistantId: params.assistantId,
   });
 
   if (!threadFound || !thread) {
@@ -56,14 +55,13 @@ export default async function Page({
 
   return (
     <div>
-      <Navbar />
       <Assistants />
       <h1 className="text-xl mb-4">
         Now talking with <span className="font-bold">{assistant.name} </span>
         about <span className="font-bold capitalize">{duty}</span>
       </h1>
       <Thread
-        assistantId={assistantId}
+        assistantId={params.assistantId}
         threadId={thread.id}
         messages={messages}
         participants={participants}

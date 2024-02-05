@@ -29,7 +29,6 @@ import {
 import { openai } from "@/openai";
 import { toFile } from "openai";
 import { streamToBuffer } from "@/lib/utils";
-import { stat } from "fs";
 
 export async function listAssistants(): Promise<ListAssistantsResponse> {
   const assistants = await openai.beta.assistants.list({
@@ -175,7 +174,6 @@ export async function submitForm({
     };
   }
 
-  console.log("submit form", prompt);
   const { message: threadMessage, success: threadMessageCreated } =
     await createMessage({
       threadId,
@@ -184,8 +182,6 @@ export async function submitForm({
   if (!threadMessageCreated || !threadMessage) {
     return { success: false };
   }
-
-  console.log("create message", threadMessage);
 
   const { run, success: assistantRanAgainstThread } = await createRun({
     assistantId,

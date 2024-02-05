@@ -14,7 +14,7 @@ export interface MessageContentArgs {
 }
 
 export type FetchAssistantResponse = {
-  assistant?: Assistant
+  assistant?: Assistant;
   success: boolean;
 };
 
@@ -25,8 +25,8 @@ export type ListAssistantsResponse = {
 
 export type AssistantMetadata = {
   avatarUrl: string;
-  duty: string,
-  chalk: string,
+  duty: string;
+  chalk: string;
 };
 export interface FetchThreadArgs {
   assistantId: string;
@@ -61,7 +61,7 @@ export enum THREAD_MESSAGES_OFFSET {
   "default" = 1,
 }
 
-export type OptimisticThreadMessage = ThreadMessage
+export type OptimisticThreadMessage = ThreadMessage;
 
 export interface ConversationFetchArgs {
   parsed?: boolean;
@@ -95,7 +95,7 @@ export interface PollRunArgs {
 export type PollRunResponse = {
   run?: Run;
   success: boolean;
-}
+};
 export interface FetchMessagesArgs {
   threadId: string;
 }
@@ -105,6 +105,7 @@ export type FetchMessagesResponse = {
   success: boolean;
 };
 export interface FormArgs {
+  handleSubmit: Function;
   addOptimisticMessage: Function;
   threadId: string;
   assistantId: string;
@@ -164,12 +165,12 @@ export interface ThreadArgs {
   messages: ThreadMessage[];
   participants: {
     user: {
-      avatar: string
-    },
+      avatar: string;
+    };
     assistant: {
-      avatar: string
-    }
-  }
+      avatar: string;
+    };
+  };
 }
 
 export interface Agent {
@@ -192,4 +193,4 @@ export type Topic = {
   color: string;
   assistantId: string;
   name: string;
-}
+};

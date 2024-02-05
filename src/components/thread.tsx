@@ -1,4 +1,5 @@
-"use client"
+"use client";
+import { submitForm } from "@/actions";
 import Image from "next/image";
 import {
   MessageArgs,
@@ -8,14 +9,13 @@ import {
 } from "@/types";
 import { ThreadMessage } from "openai/resources/beta/threads/messages/messages";
 import { useOptimisticThreadMessages } from "@/hooks/useOptimisticThreadMessages";
-import Form from "@/components/form"
-
+import Form from "@/components/form";
 
 export default function Thread({
   threadId,
   assistantId,
   messages,
-  participants
+  participants,
 }: ThreadArgs) {
   const { optimisticMessages, addOptimisticMessage } =
     useOptimisticThreadMessages({
@@ -24,16 +24,24 @@ export default function Thread({
   return (
     <>
       <ul className="flex flex-col gap-4 min-h-screen">
-        {optimisticMessages
-          .map((message: ThreadMessage) => (
-            <Message
-              avatar={message.role === "user" ? participants.user.avatar : participants.assistant.avatar}
-              key={message.id}
-              message={message}
-            />
-          ))}
+        {optimisticMessages.map((message: ThreadMessage) => (
+          <Message
+            avatar={
+              message.role === "user"
+                ? participants.user.avatar
+                : participants.assistant.avatar
+            }
+            key={message.id}
+            message={message}
+          />
+        ))}
       </ul>
-      <Form assistantId={assistantId} threadId={threadId} addOptimisticMessage={addOptimisticMessage} />
+      <Form
+        handleSubmit={submitForm}
+        assistantId={assistantId}
+        threadId={threadId}
+        addOptimisticMessage={addOptimisticMessage}
+      />
     </>
   );
 }
@@ -82,8 +90,6 @@ function MessageContent({ content: [contentMessage] }: MessageContentArgs) {
   }
   return null;
 }
-
-
 
 function MessageActions({ role }: { role: string }) {
   if (role === "system") {
